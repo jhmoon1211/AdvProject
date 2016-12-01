@@ -34,6 +34,24 @@
 void showHelp(); // for help option
 
 int main(int argc, char *argv[]) {
+
+	char *PathArr[100];
+	int PathNum=0;
+	char *CopyArgv[argc];
+	int i;
+
+	for(i=0;i<argc;i++){
+		CopyArgv[i] = malloc(strlen(argv[i]+1));
+		strcpy(CopyArgv[i],argv[i]);
+	}
+	for(i=1;i<argc;i++){
+		if(argv[i][0] == '-'){
+			break;
+		}
+		PathArr[PathNum] = argv[i];
+		PathNum++;
+	}
+
 	struct option options[] = {
 		//exec 추가함
 		//각자 명령어 옵션 수정 필요할 수 있음
