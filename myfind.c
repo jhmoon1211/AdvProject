@@ -28,7 +28,6 @@
 
 #define PATH_SIZE	1024	//path 크기
 
-int main(int argc, char *argv[]) {
 void showHelp(); // for help option
 
 int main(int argc, char *argv[]) {
@@ -163,7 +162,6 @@ int group(char* arg) {
 	return 0;
 }
 
-/*
 void showHelp() {
 	fprintf(stderr,"======================================================================================\n");
 	fprintf(stderr, "|--------- myfind [경로 1]...[경로 n] [---옵션 1][패턴]...[---옵션 n][패턴] ---------| \n");
@@ -181,4 +179,3 @@ void showHelp() {
 	// fprintf(stderr, "\t |- exec [명령] {} \; : 찾은 파일들에 대한 특정 명령을 수행할 때 사용 \n"); 
 	fprintf(stderr,"======================================================================================\n");
 }
-*/
