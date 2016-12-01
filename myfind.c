@@ -1,11 +1,4 @@
-/* 2016.11.27.
-   myfind 명령어 전체 옵션 틀
-   각자 옵션 파트 작성해서 추가하면 됨
-   수정해야 할 부분 있을 수 있어요!
-   열심히 해봅시당!
-*/
-/*2016.11.30. 클론 및 커밋테스트*/
-/*확인 작업*/
+/* All the best for our final project */
 
 #include <sys/types.h>	//opendir, readdir
 #include <dirent.h>		//opendir, readdir
@@ -13,34 +6,56 @@
 #include <unistd.h>	//getcwd()
 #include <stdio.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
+#include <sys/times.h>
+#include <fcntl.h>
+
+#define O_NAME   0
+#define O_PERM   1
+#define O_TYPE   2
+#define O_USER   3
+#define O_GROUP  4
+#define O_SIZE   5
+#define O_EXEC   6
+#define O_MV     7
+#define O_DELETE 8
+#define O_EMPTY  9
+#define O_HELP   10
 
 #define PATH_SIZE	1024	//path 크기
 
 int main(int argc, char *argv[]) {
+void showHelp(); // for help option
 
-	char *PathArr[100];
-	int PathNum=0;
-	char *CopyArgv[argc];
+int main(int argc, char *argv[]) {
+	char *pathArr[100];
+	int pathNum=0;
+	char *copyArgv[argc];
 	int i;
+	int index = 0;
+	int opt;
 	char *current_path = (char *)malloc(PATH_SIZE);	//현재 작업 디렉토리 이름 담을 포인터 변수
 	char *group_arg = NULL;
 
 	for(i=0;i<argc;i++){
-		CopyArgv[i] = malloc(strlen(argv[i]+1));
-		strcpy(CopyArgv[i],argv[i]);
+		copyArgv[i] = malloc(strlen(argv[i]+1));
+		strcpy(copyArgv[i],argv[i]);
 	}
 
 	for(i=1;i<argc;i++){
 		if(argv[i][0] == '-'){
 			break;
 		}
-		PathArr[PathNum] = argv[i];
-		PathNum++;
+		pathArr[pathNum] = argv[i];
+		pathNum++;
 	}
 
+	//각자 명령어 옵션 수정 필요할 수 있음
 	struct option options[] = {
-		//exec 추가함
-		//각자 명령어 옵션 수정 필요할 수 있음
 		{"name", 1, 0, 0},
 		{"perm", 1, 0, 0},
 		{"type", 1, 0, 0},
@@ -53,8 +68,18 @@ int main(int argc, char *argv[]) {
 		{"empty", 0, 0, 0},
 		{"help", 0, 0, 0}
 	};
-	int index = 0;
-	int opt;
+
+	for(i=0; i<argc; i++) {
+		copyArgv[i] = malloc(strlen(argv[i]+1));
+		strcpy(copyArgv[i], argv[i]);
+	}
+	for(i=1; i<argc; i++) {
+		if(argv[i][0] == '-') {
+			break;
+		}
+		pathArr[pathNum] = argv[i];
+		pathNum++;
+	}
 
 	while(1) {
 		opt = getopt_long(argc, argv, "", options, &index);	
@@ -64,30 +89,30 @@ int main(int argc, char *argv[]) {
 		switch(opt) {
 			case 0:
 				switch(index) {
-					case 0:		// 옵션이 options[0]인 name일 경우
+					case O_NAME:		// 옵션이 options[0]인 name일 경우
 						break;
-					case 1:		//perm인 경우
+					case O_PERM:		//perm인 경우
 						break;
-					case 2:		//type인 경우
+					case O_TYPE:		//type인 경우
 						break;
-					case 3:		//user인 경우
+					case O_USER:		//user인 경우
 						break;
-					case 4:		//group인 경우
+					case O_GROUP:		//group인 경우
 						group_arg = optarg;		//--group옵션의 인자
 						group(group_arg);
 						break;
-					case 5:		//size인 경우
+					case O_SIZE:		//size인 경우
 						break;
-					case 6:		//exec인 경우
+					case O_EXEC:		//exec인 경우
 						break;
-					case 7:		//mv인 경우
+					case O_MV:		//mv인 경우
 						break;
-					case 8:		//delete인 경우
+					case O_DELETE:		//delete인 경우
 						break;
-					case 9:		//empty인 경우
+					case O_EMPTY:		//empty인 경우
 						break;
-					case 10:	//help인 경우
-						printf("옵션 %s\n", options[index].name);
+					case O_HELP:	//help인 경우
+						showHelp();
 						break;
 				}
 		}
@@ -110,7 +135,8 @@ int group(char* arg) {
 	struct stat sbuf;
 	char path[BUFSIZ];
 	int i;
-	char str[255];	//함수의 그룹 아이디 저장 배열
+	//char str[255];	//함수의 그룹 아이디 저장 배열
+	int gname;
 
 	if((dp = opendir(".")) == NULL) {
 		//에러난 현재 디렉토리 출력
@@ -126,9 +152,33 @@ int group(char* arg) {
 	sprintf(path, "./%s", dent->d_name);	//디렉토리의 항복 읽기
 	stat(path, &sbuf);	//stat함수로 상세 정보 검색
 
-	strcpy(str, (char)sbuf.st_gid);	//stat의 그룹 아이디를 str에 복사
-	if(!strcmp(*arg, str)) {
+	//strcpy(str, (char)sbuf.st_gid);	//stat의 그룹 아이디를 str에 복사 + for문
+	//if(!strcmp(*arg, str)) {
+	//	printf("%s\n", dent->d_name);
+	//}
+	gname = atoi(*arg);
+	if(gname == (int)sbuf.st_gid) {
 		printf("%s\n", dent->d_name);
 	}
 	return 0;
 }
+
+/*
+void showHelp() {
+	fprintf(stderr,"======================================================================================\n");
+	fprintf(stderr, "|--------- myfind [경로 1]...[경로 n] [---옵션 1][패턴]...[---옵션 n][패턴] ---------| \n");
+	fprintf(stderr, "\t |- name [파일이름] : [파일이름]과 일치하는 파일 검색 \n");
+	fprintf(stderr, "\t |- user [유저이름] : [유저이름]과 일치하는 파일 검색 \n");
+	fprintf(stderr, "\t |- help : find명령어에 대한 설명 출력 \n");
+	fprintf(stderr, "\t |- perm [파일권한] : [파일권한]과 일치하는 파일 검색 \n");
+	fprintf(stderr, "\t |- size [파일용량] : [파일용량]과 이상의 파일 검색 \n");
+	fprintf(stderr, "\t |- delete [파일이름] : [파일이름]에 지정한 파일을 검색하고 삭제 \n");
+	fprintf(stderr, "\t |- group [그룹이름] : [그룹이름]과 일치하는 파일 검색 \n");
+	fprintf(stderr, "\t |- type [파일종류] : [파일종류] 지정하여 파일 검색 \n");
+	fprintf(stderr, "\t |- empty : 빈 파일 검색 \n");
+	fprintf(stderr, "\t |- mv [파일이름] [디렉토리이름] : [파일이름]의 파일을 찾아서 경로를 출력하고, \n");
+	fprintf(stderr, "\t\t\t\t[디렉토리이름]에 지정한 디렉토리로 이동 \n"); // mv 설명 이어서
+	// fprintf(stderr, "\t |- exec [명령] {} \; : 찾은 파일들에 대한 특정 명령을 수행할 때 사용 \n"); 
+	fprintf(stderr,"======================================================================================\n");
+}
+*/
