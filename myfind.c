@@ -26,7 +26,7 @@
 #define O_EMPTY  9
 #define O_HELP   10
 
-#define PATH_SIZE	1024	//path Å©±â
+#define PATH_SIZE	1024	//path í¬ê¸°
 
 void showHelp(); // for help option
 int group(char*); 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 	int i;
 	int index = 0;
 	int opt;
-	char *current_path = (char *)malloc(PATH_SIZE);	//ÇöÀç ÀÛ¾÷ µğ·ºÅä¸® ÀÌ¸§ ´ãÀ» Æ÷ÀÎÅÍ º¯¼ö
+	char *current_path = (char *)malloc(PATH_SIZE);	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ ì´ë¦„ ë‹´ì„ í¬ì¸í„° ë³€ìˆ˜
 	char *group_arg = NULL;
 
 	for(i=0;i<argc;i++){
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 		pathNum++;
 	}
 
-	//°¢ÀÚ ¸í·É¾î ¿É¼Ç ¼öÁ¤ ÇÊ¿äÇÒ ¼ö ÀÖÀ½
+	//ê°ì ëª…ë ¹ì–´ ì˜µì…˜ ìˆ˜ì • í•„ìš”í•  ìˆ˜ ìˆìŒ
 	struct option options[] = {
 		{"name", 1, 0, 0},
 		{"perm", 1, 0, 0},
@@ -82,53 +82,53 @@ int main(int argc, char *argv[]) {
 		pathNum++;
 	}
 
-	//ÇöÀç ÀÛ¾÷ µğ·ºÅä¸®ÀÇ ÀÌ¸§À» PATH_SIZE¸¸Å­ ±æÀÌ·Î current_path¿¡ º¹»ç
+	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ì˜ ì´ë¦„ì„ PATH_SIZEë§Œí¼ ê¸¸ì´ë¡œ current_pathì— ë³µì‚¬
 	getcwd(current_path, PATH_SIZE);	
 
 	while(1) {
 		opt = getopt_long(argc, argv, "", options, &index);	
 
-		if(opt == -1) break;	// ¸ğµç ¿É¼ÇÀ» È®ÀÎÇÏ¸é Á¾·á
+		if(opt == -1) break;	// ëª¨ë“  ì˜µì…˜ì„ í™•ì¸í•˜ë©´ ì¢…ë£Œ
 
 		switch(opt) {
 			case 0:
 				switch(index) {
-					case O_NAME:		// ¿É¼ÇÀÌ options[0]ÀÎ nameÀÏ °æ¿ì
+					case O_NAME:		// ì˜µì…˜ì´ options[0]ì¸ nameì¼ ê²½ìš°
 						break;
-					case O_PERM:		//permÀÎ °æ¿ì
+					case O_PERM:		//permì¸ ê²½ìš°
 						break;
-					case O_TYPE:		//typeÀÎ °æ¿ì
+					case O_TYPE:		//typeì¸ ê²½ìš°
 						break;
-					case O_USER:		//userÀÎ °æ¿ì
+					case O_USER:		//userì¸ ê²½ìš°
 						break;
-					case O_GROUP:		//groupÀÎ °æ¿ì
-						group_arg = optarg;		//--group¿É¼ÇÀÇ ÀÎÀÚ
+					case O_GROUP:		//groupì¸ ê²½ìš°
+						group_arg = optarg;		//--groupì˜µì…˜ì˜ ì¸ì
 						group(group_arg);
 						break;
-					case O_SIZE:		//sizeÀÎ °æ¿ì
+					case O_SIZE:		//sizeì¸ ê²½ìš°
 						break;
-					case O_EXEC:		//execÀÎ °æ¿ì
+					case O_EXEC:		//execì¸ ê²½ìš°
 						break;
-					case O_MV:		//mvÀÎ °æ¿ì
+					case O_MV:		//mvì¸ ê²½ìš°
 						break;
-					case O_DELETE:		//deleteÀÎ °æ¿ì
+					case O_DELETE:		//deleteì¸ ê²½ìš°
 						break;
-					case O_EMPTY:		//emptyÀÎ °æ¿ì
+					case O_EMPTY:		//emptyì¸ ê²½ìš°
 						empty(current_path);
 						break;
-					case O_HELP:	//helpÀÎ °æ¿ì
+					case O_HELP:	//helpì¸ ê²½ìš°
 						showHelp();
 						break;
 				}
 		}
 	}
 
-	//ÇöÀç ÀÛ¾÷ µğ·ºÅä¸®ÀÇ ÀÌ¸§À» PATH_SIZE¸¸Å­ ±æÀÌ·Î current_path¿¡ º¹»ç
+	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ì˜ ì´ë¦„ì„ PATH_SIZEë§Œí¼ ê¸¸ì´ë¡œ current_pathì— ë³µì‚¬
 	//getcwd(current_path, PATH_SIZE);	
 
 	//for(i = 0; i < pathNum; i++) {
     //	group(copyArgv[i]);
-	//	chdir(current_path);	//current_path·Î µğ·ºÅä¸® ÀÌµ¿ 
+	//	chdir(current_path);	//current_pathë¡œ ë””ë ‰í† ë¦¬ ì´ë™ 
 	//}
 
 	return 0;
@@ -140,24 +140,24 @@ int group(char* arg) {
 	struct stat sbuf;
 	char path[BUFSIZ];
 	int i;
-	//char str[255];	//ÇÔ¼öÀÇ ±×·ì ¾ÆÀÌµğ ÀúÀå ¹è¿­
+	//char str[255];	//í•¨ìˆ˜ì˜ ê·¸ë£¹ ì•„ì´ë”” ì €ì¥ ë°°ì—´
 	int gname;
 
 	if((dp = opendir(".")) == NULL) {
-		//¿¡·¯³­ ÇöÀç µğ·ºÅä¸® Ãâ·Â
+		//ì—ëŸ¬ë‚œ í˜„ì¬ ë””ë ‰í† ë¦¬ ì¶œë ¥
 		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
 		exit(1);
 	}
 
-	while((dent == readdir(dp))) {	//.À¸·Î ½ÃÀÛÇÏ´Â ÆÄÀÏÀº »ı·«
+	while((dent == readdir(dp))) {	//.ìœ¼ë¡œ ì‹œì‘í•˜ëŠ” íŒŒì¼ì€ ìƒëµ
 		if(dent->d_name[0] == '.')	continue;
 		else	break;
 	}
 
-	sprintf(path, "./%s", dent->d_name);	//µğ·ºÅä¸®ÀÇ Ç×º¹ ÀĞ±â
-	stat(path, &sbuf);	//statÇÔ¼ö·Î »ó¼¼ Á¤º¸ °Ë»ö
+	sprintf(path, "./%s", dent->d_name);	//ë””ë ‰í† ë¦¬ì˜ í•­ë³µ ì½ê¸°
+	stat(path, &sbuf);	//statí•¨ìˆ˜ë¡œ ìƒì„¸ ì •ë³´ ê²€ìƒ‰
 
-	//strcpy(str, (char)sbuf.st_gid);	//statÀÇ ±×·ì ¾ÆÀÌµğ¸¦ str¿¡ º¹»ç + for¹®
+	//strcpy(str, (char)sbuf.st_gid);	//statì˜ ê·¸ë£¹ ì•„ì´ë””ë¥¼ strì— ë³µì‚¬ + forë¬¸
 	//if(!strcmp(*arg, str)) {
 	//	printf("%s\n", dent->d_name);
 	//}
@@ -178,19 +178,18 @@ void empty(char* path) {
 	char path2[BUFSIZ];
 	//char** path1 = path;
 
-	//if((dp = opendir(*path)) == NULL) {
-	if((dp = opendir(path)) == NULL) {
-		//¿¡·¯³­ ÇöÀç µğ·ºÅä¸® Ãâ·Â
+	if((dp = opendir(*path)) == NULL) {
+		//ì—ëŸ¬ë‚œ í˜„ì¬ ë””ë ‰í† ë¦¬ ì¶œë ¥
 		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
 		exit(1);
 	}
 
-	while((dent == readdir(dp))) {	//.À¸·Î ½ÃÀÛÇÏ´Â ÆÄÀÏÀº »ı·«
+	while((dent == readdir(dp))) {	//.ìœ¼ë¡œ ì‹œì‘í•˜ëŠ” íŒŒì¼ì€ ìƒëµ
 		if(dent->d_name[0] == '.')	continue;
 		else	break;
 	}
 
-	sprintf(path2, "./%s", dent->d_name);	//µğ·ºÅä¸®ÀÇ Ç×º¹ ÀĞ±â
+	sprintf(path2, "./%s", dent->d_name);	//ë””ë ‰í† ë¦¬ì˜ í•­ë³µ ì½ê¸°
 	stat(path2, &sbuf);
 
 	if((int)sbuf.st_size == 0) {
@@ -202,18 +201,18 @@ void empty(char* path) {
 
 void showHelp() {
 	fprintf(stderr,"======================================================================================\n");
-	fprintf(stderr, "|--------- myfind [°æ·Î 1]...[°æ·Î n] [---¿É¼Ç 1][ÆĞÅÏ]...[---¿É¼Ç n][ÆĞÅÏ] ---------| \n");
-	fprintf(stderr, "\t |- name [ÆÄÀÏÀÌ¸§] : [ÆÄÀÏÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- user [À¯ÀúÀÌ¸§] : [À¯ÀúÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- help : find¸í·É¾î¿¡ ´ëÇÑ ¼³¸í Ãâ·Â \n");
-	fprintf(stderr, "\t |- perm [ÆÄÀÏ±ÇÇÑ] : [ÆÄÀÏ±ÇÇÑ]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- size [ÆÄÀÏ¿ë·®] : [ÆÄÀÏ¿ë·®]°ú ÀÌ»óÀÇ ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- delete [ÆÄÀÏÀÌ¸§] : [ÆÄÀÏÀÌ¸§]¿¡ ÁöÁ¤ÇÑ ÆÄÀÏÀ» °Ë»öÇÏ°í »èÁ¦ \n");
-	fprintf(stderr, "\t |- group [±×·ìÀÌ¸§] : [±×·ìÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- type [ÆÄÀÏÁ¾·ù] : [ÆÄÀÏÁ¾·ù] ÁöÁ¤ÇÏ¿© ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- empty : ºó ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- mv [ÆÄÀÏÀÌ¸§] [µğ·ºÅä¸®ÀÌ¸§] : [ÆÄÀÏÀÌ¸§]ÀÇ ÆÄÀÏÀ» Ã£¾Æ¼­ °æ·Î¸¦ Ãâ·ÂÇÏ°í, \n");
-	fprintf(stderr, "\t\t\t\t[µğ·ºÅä¸®ÀÌ¸§]¿¡ ÁöÁ¤ÇÑ µğ·ºÅä¸®·Î ÀÌµ¿ \n"); // mv ¼³¸í ÀÌ¾î¼­
-	// fprintf(stderr, "\t |- exec [¸í·É] {} \; : Ã£Àº ÆÄÀÏµé¿¡ ´ëÇÑ Æ¯Á¤ ¸í·ÉÀ» ¼öÇàÇÒ ¶§ »ç¿ë \n"); 
+	fprintf(stderr, "|--------- myfind [ê²½ë¡œ 1]...[ê²½ë¡œ n] [---ì˜µì…˜ 1][íŒ¨í„´]...[---ì˜µì…˜ n][íŒ¨í„´] ---------| \n");
+	fprintf(stderr, "\t |- name [íŒŒì¼ì´ë¦„] : [íŒŒì¼ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- user [ìœ ì €ì´ë¦„] : [ìœ ì €ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- help : findëª…ë ¹ì–´ì— ëŒ€í•œ ì„¤ëª… ì¶œë ¥ \n");
+	fprintf(stderr, "\t |- perm [íŒŒì¼ê¶Œí•œ] : [íŒŒì¼ê¶Œí•œ]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- size [íŒŒì¼ìš©ëŸ‰] : [íŒŒì¼ìš©ëŸ‰]ê³¼ ì´ìƒì˜ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- delete [íŒŒì¼ì´ë¦„] : [íŒŒì¼ì´ë¦„]ì— ì§€ì •í•œ íŒŒì¼ì„ ê²€ìƒ‰í•˜ê³  ì‚­ì œ \n");
+	fprintf(stderr, "\t |- group [ê·¸ë£¹ì´ë¦„] : [ê·¸ë£¹ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- type [íŒŒì¼ì¢…ë¥˜] : [íŒŒì¼ì¢…ë¥˜] ì§€ì •í•˜ì—¬ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- empty : ë¹ˆ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- mv [íŒŒì¼ì´ë¦„] [ë””ë ‰í† ë¦¬ì´ë¦„] : [íŒŒì¼ì´ë¦„]ì˜ íŒŒì¼ì„ ì°¾ì•„ì„œ ê²½ë¡œë¥¼ ì¶œë ¥í•˜ê³ , \n");
+	fprintf(stderr, "\t\t\t\t[ë””ë ‰í† ë¦¬ì´ë¦„]ì— ì§€ì •í•œ ë””ë ‰í† ë¦¬ë¡œ ì´ë™ \n"); // mv ì„¤ëª… ì´ì–´ì„œ
+	// fprintf(stderr, "\t |- exec [ëª…ë ¹] {} \; : ì°¾ì€ íŒŒì¼ë“¤ì— ëŒ€í•œ íŠ¹ì • ëª…ë ¹ì„ ìˆ˜í–‰í•  ë•Œ ì‚¬ìš© \n"); 
 	fprintf(stderr,"======================================================================================\n");
 }
