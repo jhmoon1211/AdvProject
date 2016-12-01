@@ -1,12 +1,4 @@
-/* 2016.11.27.
-   myfind 명령어 전체 옵션 틀
-   각자 옵션 파트 작성해서 추가하면 됨
-   수정해야 할 부분 있을 수 있어요!
-   열심히 해봅시당!
-*/
-/*2016.11.30. 클론 및 커밋테스트*/
-/*확인 작업*/
-
+/* All the best for our final project */
 #include <stdio.h>
 #include <getopt.h>
 #include <unistd.h>
@@ -34,27 +26,14 @@
 void showHelp(); // for help option
 
 int main(int argc, char *argv[]) {
-
-	char *PathArr[100];
-	int PathNum=0;
-	char *CopyArgv[argc];
+	char *pathArr[100];
+	int pathNum=0;
+	char *copyArgv[argc];
 	int i;
-
-	for(i=0;i<argc;i++){
-		CopyArgv[i] = malloc(strlen(argv[i]+1));
-		strcpy(CopyArgv[i],argv[i]);
-	}
-	for(i=1;i<argc;i++){
-		if(argv[i][0] == '-'){
-			break;
-		}
-		PathArr[PathNum] = argv[i];
-		PathNum++;
-	}
-
+	int index = 0;
+	int opt;
+	//각자 명령어 옵션 수정 필요할 수 있음
 	struct option options[] = {
-		//exec 추가함
-		//각자 명령어 옵션 수정 필요할 수 있음
 		{"name", 1, 0, 0},
 		{"perm", 1, 0, 0},
 		{"type", 1, 0, 0},
@@ -67,8 +46,18 @@ int main(int argc, char *argv[]) {
 		{"empty", 0, 0, 0},
 		{"help", 0, 0, 0}
 	};
-	int index = 0;
-	int opt;
+
+	for(i=0; i<argc; i++) {
+		copyArgv[i] = malloc(strlen(argv[i]+1));
+		strcpy(copyArgv[i], argv[i]);
+	}
+	for(i=1; i<argc; i++) {
+		if(argv[i][0] == '-') {
+			break;
+		}
+		pathArr[pathNum] = argv[i];
+		pathNum++;
+	}
 
 	while(1) {
 		opt = getopt_long(argc, argv, "", options, &index);	
@@ -104,6 +93,7 @@ int main(int argc, char *argv[]) {
 				}
 		}
 	}
+	return 0;
 }
 
 void showHelp() {
