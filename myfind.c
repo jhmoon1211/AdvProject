@@ -29,6 +29,8 @@
 #define PATH_SIZE	1024	//path 크기
 
 void showHelp(); // for help option
+int group(char*); 
+void empty();
 
 int main(int argc, char *argv[]) {
 	char *pathArr[100];
@@ -80,6 +82,9 @@ int main(int argc, char *argv[]) {
 		pathNum++;
 	}
 
+	//현재 작업 디렉토리의 이름을 PATH_SIZE만큼 길이로 current_path에 복사
+	getcwd(current_path, PATH_SIZE);	
+
 	while(1) {
 		opt = getopt_long(argc, argv, "", options, &index);	
 
@@ -109,6 +114,7 @@ int main(int argc, char *argv[]) {
 					case O_DELETE:		//delete인 경우
 						break;
 					case O_EMPTY:		//empty인 경우
+						empty(current_path);
 						break;
 					case O_HELP:	//help인 경우
 						showHelp();
@@ -159,7 +165,39 @@ int group(char* arg) {
 	if(gname == (int)sbuf.st_gid) {
 		printf("%s\n", dent->d_name);
 	}
+
+	closedir(dp);
+
 	return 0;
+}
+
+void empty(char* path) {
+	DIR *dp;
+	struct dirent *dent;
+	struct stat sbuf;
+	char path2[BUFSIZ];
+	//char** path1 = path;
+
+	//if((dp = opendir(*path)) == NULL) {
+	if((dp = opendir(path)) == NULL) {
+		//에러난 현재 디렉토리 출력
+		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
+		exit(1);
+	}
+
+	while((dent == readdir(dp))) {	//.으로 시작하는 파일은 생략
+		if(dent->d_name[0] == '.')	continue;
+		else	break;
+	}
+
+	sprintf(path2, "./%s", dent->d_name);	//디렉토리의 항복 읽기
+	stat(path2, &sbuf);
+
+	if((int)sbuf.st_size == 0) {
+		printf("%s\n", dent->d_name);
+	}
+
+	closedir(dp);
 }
 
 void showHelp() {
