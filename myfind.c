@@ -1,17 +1,22 @@
 /* All the best for our final project */
-// here is master
+
+#include <sys/types.h>	//opendir, readdir
+#include <dirent.h>		//opendir, readdir
+#include <sys/stat.h>	//stat
+#include <unistd.h>	//getcwd()
 #include <stdio.h>
 #include <getopt.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
 #include <sys/times.h>
 #include <fcntl.h>
+#define BUF_SIZE 512
 #define O_NAME   0
 #define O_PERM   1
 #define O_TYPE   2
@@ -24,16 +29,29 @@
 #define O_EMPTY  9
 #define O_HELP   10
 
-void showHelp(); // for help option
+#define PATH_SIZE	1024	//path í¬ê¸°
 
+int FindByPerm(char* path, char* arg);
+void showHelp(); // for help option
+int group(char*); 
+void empty();
+char* newpath(char* path);
+char NewFile[30];
+int PermtoInt(char* perm, int radix);
 int main(int argc, char *argv[]) {
-	char *pathArr[100];
-	int pathNum=0;
-	char *copyArgv[argc];
+	char buf[BUF_SIZE];
+	int bufsize;
+	char *PathArr[100];
+	int PathNum=0;
+	char *CopyArgv[argc];
 	int i;
 	int index = 0;
 	int opt;
-	//°¢ÀÚ ¸í·É¾î ¿É¼Ç ¼öÁ¤ ÇÊ¿äÇÒ ¼ö ÀÖÀ½
+	char *current_path = (char *)malloc(PATH_SIZE);	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ ì´ë¦„ ë‹´ì„ í¬ì¸í„° ë³€ìˆ˜
+	char *group_arg = NULL;
+	char *perm_arg = NULL;
+
+	//ê°ì ëª…ë ¹ì–´ ì˜µì…˜ ìˆ˜ì • í•„ìš”í•  ìˆ˜ ìˆìŒ
 	struct option options[] = {
 		{"name", 1, 0, 0},
 		{"perm", 1, 0, 0},
@@ -49,46 +67,58 @@ int main(int argc, char *argv[]) {
 	};
 
 	for(i=0; i<argc; i++) {
-		copyArgv[i] = malloc(strlen(argv[i]+1));
-		strcpy(copyArgv[i], argv[i]);
+		CopyArgv[i] = malloc(strlen(argv[i]+1));
+		strcpy(CopyArgv[i], argv[i]);
 	}
 	for(i=1; i<argc; i++) {
 		if(argv[i][0] == '-') {
 			break;
 		}
-		pathArr[pathNum] = argv[i];
-		pathNum++;
+		PathArr[PathNum] = argv[i];
+		PathNum++;
 	}
+
+	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ì˜ ì´ë¦„ì„ PATH_SIZEë§Œí¼ ê¸¸ì´ë¡œ current_pathì— ë³µì‚¬
+	getcwd(current_path, PATH_SIZE);	
 
 	while(1) {
 		opt = getopt_long(argc, argv, "", options, &index);	
 
-		if(opt == -1) break;	// ¸ğµç ¿É¼ÇÀ» È®ÀÎÇÏ¸é Á¾·á
+		if(opt == -1) break;	// ëª¨ë“  ì˜µì…˜ì„ í™•ì¸í•˜ë©´ ì¢…ë£Œ
 
 		switch(opt) {
 			case 0:
 				switch(index) {
-					case O_NAME:		// ¿É¼ÇÀÌ options[0]ÀÎ nameÀÏ °æ¿ì
+					case O_NAME:		// ì˜µì…˜ì´ options[0]ì¸ nameì¼ ê²½ìš°
 						break;
-					case O_PERM:		//permÀÎ °æ¿ì
+					case O_PERM:		//permì¸ ê²½ìš°
+						perm_arg = optarg;
+						for(i=0;i<PathNum;i++){
+							FindByPerm(PathArr[i],perm_arg);
+							getcwd(buf,bufsize);
+							chdir(buf);
+						}
 						break;
-					case O_TYPE:		//typeÀÎ °æ¿ì
+					case O_TYPE:		//typeì¸ ê²½ìš°
 						break;
-					case O_USER:		//userÀÎ °æ¿ì
+					case O_USER:		//userì¸ ê²½ìš°
 						break;
-					case O_GROUP:		//groupÀÎ °æ¿ì
+					case O_GROUP:		//groupì¸ ê²½ìš°
+						group_arg = optarg;		//--groupì˜µì…˜ì˜ ì¸ì
+						group(group_arg);
 						break;
-					case O_SIZE:		//sizeÀÎ °æ¿ì
+					case O_SIZE:		//sizeì¸ ê²½ìš°
 						break;
-					case O_EXEC:		//execÀÎ °æ¿ì
+					case O_EXEC:		//execì¸ ê²½ìš°
 						break;
-					case O_MV:		//mvÀÎ °æ¿ì
+					case O_MV:		//mvì¸ ê²½ìš°
 						break;
-					case O_DELETE:		//deleteÀÎ °æ¿ì
+					case O_DELETE:		//deleteì¸ ê²½ìš°
 						break;
-					case O_EMPTY:		//emptyÀÎ °æ¿ì
+					case O_EMPTY:		//emptyì¸ ê²½ìš°
+						empty(current_path);
 						break;
-					case O_HELP:	//helpÀÎ °æ¿ì
+					case O_HELP:	//helpì¸ ê²½ìš°
 						showHelp();
 						break;
 				}
@@ -97,20 +127,196 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+int FindByPerm(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg = arg;
+	FILE *fd;
+	int a,b;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+	if(!(DP=opendir(path))){
+		path = (char *)newpath(path);
+		if(!(DP=opendir(path))){
+			perror("opendir error");
+			return -1;
+		}
+	}
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		a = PermtoInt(tmparg,8);
+		b = (FileStat.st_mode&0777);
+		if(a!=b)
+			continue;
+
+		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+	}
+	/*
+	rewinddir(DP);
+	while((DirectStat=readdir(DP))!=NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+
+		if((FileStat.st_mode & S_IFMT)==S_IFDIR){
+			FindByPerm(DirectStat->d_name, tmparg);
+		}
+	}
+	*/
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+char* newpath(char* path){
+	int len,i,j=0,k=0;
+	char path1[100];
+
+	len = strlen(path);
+	strcpy(path1,path);
+	for(i=len;i>0;i--){
+		if(path1[i]=='/'){
+			j=i;
+			break;
+		}
+	}
+	j++;
+	for (i=j;i<=len;i++){
+		NewFile[k++]=path1[i];
+		path1[i] = NULL;
+	}
+	NewFile[k] = NULL;
+	strcpy(path,path1);
+	return path;
+
+	//í˜„ì¬ ì‘ì—… ë””ë ‰í† ë¦¬ì˜ ì´ë¦„ì„ PATH_SIZEë§Œí¼ ê¸¸ì´ë¡œ current_pathì— ë³µì‚¬
+	//getcwd(current_path, PATH_SIZE);	
+
+	//for(i = 0; i < pathNum; i++) {
+    //	group(copyArgv[i]);
+	//	chdir(current_path);	//current_pathë¡œ ë””ë ‰í† ë¦¬ ì´ë™ 
+	//}
+
+	return 0;
+}
+
+int group(char* arg) {
+	DIR *dp;
+	struct dirent *dent;
+	struct stat sbuf;
+	char path[BUFSIZ];
+	int i;
+	//char str[255];	//í•¨ìˆ˜ì˜ ê·¸ë£¹ ì•„ì´ë”” ì €ì¥ ë°°ì—´
+	int gname;
+
+	if((dp = opendir(".")) == NULL) {
+		//ì—ëŸ¬ë‚œ í˜„ì¬ ë””ë ‰í† ë¦¬ ì¶œë ¥
+		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
+		exit(1);
+	}
+
+	while((dent == readdir(dp))) {	//.ìœ¼ë¡œ ì‹œì‘í•˜ëŠ” íŒŒì¼ì€ ìƒëµ
+		if(dent->d_name[0] == '.')	continue;
+		else	break;
+	}
+
+	sprintf(path, "./%s", dent->d_name);	//ë””ë ‰í† ë¦¬ì˜ í•­ë³µ ì½ê¸°
+	stat(path, &sbuf);	//statí•¨ìˆ˜ë¡œ ìƒì„¸ ì •ë³´ ê²€ìƒ‰
+
+	//strcpy(str, (char)sbuf.st_gid);	//statì˜ ê·¸ë£¹ ì•„ì´ë””ë¥¼ strì— ë³µì‚¬ + forë¬¸
+	//if(!strcmp(*arg, str)) {
+	//	printf("%s\n", dent->d_name);
+	//}
+	gname = atoi(*arg);
+	if(gname == (int)sbuf.st_gid) {
+		printf("%s\n", dent->d_name);
+	}
+
+	closedir(dp);
+
+	return 0;
+}
+
+void empty(char* path) {
+	DIR *dp;
+	struct dirent *dent;
+	struct stat sbuf;
+	char path2[BUFSIZ];
+	//char** path1 = path;
+
+	if((dp = opendir(*path)) == NULL) {
+		//ì—ëŸ¬ë‚œ í˜„ì¬ ë””ë ‰í† ë¦¬ ì¶œë ¥
+		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
+		exit(1);
+	}
+
+	while((dent == readdir(dp))) {	//.ìœ¼ë¡œ ì‹œì‘í•˜ëŠ” íŒŒì¼ì€ ìƒëµ
+		if(dent->d_name[0] == '.')	continue;
+		else	break;
+	}
+
+	sprintf(path2, "./%s", dent->d_name);	//ë””ë ‰í† ë¦¬ì˜ í•­ë³µ ì½ê¸°
+	stat(path2, &sbuf);
+
+	if((int)sbuf.st_size == 0) {
+		printf("%s\n", dent->d_name);
+	}
+
+	closedir(dp);
+}
+
 void showHelp() {
 	fprintf(stderr,"======================================================================================\n");
-	fprintf(stderr, "|--------- myfind [°æ·Î 1]...[°æ·Î n] [---¿É¼Ç 1][ÆĞÅÏ]...[---¿É¼Ç n][ÆĞÅÏ] ---------| \n");
-	fprintf(stderr, "\t |- name [ÆÄÀÏÀÌ¸§] : [ÆÄÀÏÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- user [À¯ÀúÀÌ¸§] : [À¯ÀúÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- help : find¸í·É¾î¿¡ ´ëÇÑ ¼³¸í Ãâ·Â \n");
-	fprintf(stderr, "\t |- perm [ÆÄÀÏ±ÇÇÑ] : [ÆÄÀÏ±ÇÇÑ]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- size [ÆÄÀÏ¿ë·®] : [ÆÄÀÏ¿ë·®]°ú ÀÌ»óÀÇ ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- delete [ÆÄÀÏÀÌ¸§] : [ÆÄÀÏÀÌ¸§]¿¡ ÁöÁ¤ÇÑ ÆÄÀÏÀ» °Ë»öÇÏ°í »èÁ¦ \n");
-	fprintf(stderr, "\t |- group [±×·ìÀÌ¸§] : [±×·ìÀÌ¸§]°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- type [ÆÄÀÏÁ¾·ù] : [ÆÄÀÏÁ¾·ù] ÁöÁ¤ÇÏ¿© ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- empty : ºó ÆÄÀÏ °Ë»ö \n");
-	fprintf(stderr, "\t |- mv [ÆÄÀÏÀÌ¸§] [µğ·ºÅä¸®ÀÌ¸§] : [ÆÄÀÏÀÌ¸§]ÀÇ ÆÄÀÏÀ» Ã£¾Æ¼­ °æ·Î¸¦ Ãâ·ÂÇÏ°í, \n");
-	fprintf(stderr, "\t\t\t\t[µğ·ºÅä¸®ÀÌ¸§]¿¡ ÁöÁ¤ÇÑ µğ·ºÅä¸®·Î ÀÌµ¿ \n"); // mv ¼³¸í ÀÌ¾î¼­
-	// fprintf(stderr, "\t |- exec [¸í·É] {} \; : Ã£Àº ÆÄÀÏµé¿¡ ´ëÇÑ Æ¯Á¤ ¸í·ÉÀ» ¼öÇàÇÒ ¶§ »ç¿ë \n");
+	fprintf(stderr, "|--------- myfind [ê²½ë¡œ 1]...[ê²½ë¡œ n] [---ì˜µì…˜ 1][íŒ¨í„´]...[---ì˜µì…˜ n][íŒ¨í„´] ---------| \n");
+	fprintf(stderr, "\t |- name [íŒŒì¼ì´ë¦„] : [íŒŒì¼ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- user [ìœ ì €ì´ë¦„] : [ìœ ì €ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- help : findëª…ë ¹ì–´ì— ëŒ€í•œ ì„¤ëª… ì¶œë ¥ \n");
+	fprintf(stderr, "\t |- perm [íŒŒì¼ê¶Œí•œ] : [íŒŒì¼ê¶Œí•œ]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- size [íŒŒì¼ìš©ëŸ‰] : [íŒŒì¼ìš©ëŸ‰]ê³¼ ì´ìƒì˜ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- delete [íŒŒì¼ì´ë¦„] : [íŒŒì¼ì´ë¦„]ì— ì§€ì •í•œ íŒŒì¼ì„ ê²€ìƒ‰í•˜ê³  ì‚­ì œ \n");
+	fprintf(stderr, "\t |- group [ê·¸ë£¹ì´ë¦„] : [ê·¸ë£¹ì´ë¦„]ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- type [íŒŒì¼ì¢…ë¥˜] : [íŒŒì¼ì¢…ë¥˜] ì§€ì •í•˜ì—¬ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- empty : ë¹ˆ íŒŒì¼ ê²€ìƒ‰ \n");
+	fprintf(stderr, "\t |- mv [íŒŒì¼ì´ë¦„] [ë””ë ‰í† ë¦¬ì´ë¦„] : [íŒŒì¼ì´ë¦„]ì˜ íŒŒì¼ì„ ì°¾ì•„ì„œ ê²½ë¡œë¥¼ ì¶œë ¥í•˜ê³ , \n");
+	fprintf(stderr, "\t\t\t\t[ë””ë ‰í† ë¦¬ì´ë¦„]ì— ì§€ì •í•œ ë””ë ‰í† ë¦¬ë¡œ ì´ë™ \n"); // mv ì„¤ëª… ì´ì–´ì„œ
+	// fprintf(stderr, "\t |- exec [ëª…ë ¹] {} \; : ì°¾ì€ íŒŒì¼ë“¤ì— ëŒ€í•œ íŠ¹ì • ëª…ë ¹ì„ ìˆ˜í–‰í•  ë•Œ ì‚¬ìš© \n"); 
 	fprintf(stderr,"======================================================================================\n");
 }
+		
+int PermtoInt(char* perm, int radix){
+	char* tmp = perm;
+	while(*tmp){
+		*tmp++;
+	}
+	return strtol(perm,(char**)NULL,radix);
+}
+		
+
+
+
+
+
+
+
