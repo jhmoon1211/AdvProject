@@ -31,13 +31,13 @@
 
 #define PATH_SIZE	1024	//path 크기
 
-int FindByPerm(char* path);
+int FindByPerm(char* path, char* arg);
 void showHelp(); // for help option
 int group(char*); 
 void empty();
 char* newpath(char* path);
 char NewFile[30];
-
+int PermtoInt(char* perm, int radix);
 int main(int argc, char *argv[]) {
 	char buf[BUF_SIZE];
 	int bufsize;
@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	char *current_path = (char *)malloc(PATH_SIZE);	//현재 작업 디렉토리 이름 담을 포인터 변수
 	char *group_arg = NULL;
+	char *perm_arg = NULL;
 
 	//각자 명령어 옵션 수정 필요할 수 있음
 	struct option options[] = {
@@ -91,8 +92,9 @@ int main(int argc, char *argv[]) {
 					case O_NAME:		// 옵션이 options[0]인 name일 경우
 						break;
 					case O_PERM:		//perm인 경우
+						perm_arg = optarg;
 						for(i=0;i<PathNum;i++){
-							FindByPerm(PathArr[i]);
+							FindByPerm(PathArr[i],perm_arg);
 							getcwd(buf,bufsize);
 							chdir(buf);
 						}
@@ -125,14 +127,16 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-int FindByPerm(char* path){
+int FindByPerm(char* path, char* arg){
 	DIR* DP;
 	struct stat FileStat;
 	char buf2[BUF_SIZE];
 	struct dirent *DirectStat;
 	char permbuf[5];
 	char permbuf1[5];
+	char *tmparg = arg;
 	FILE *fd;
+	int a,b;
 	if(access(path,R_OK)){
 		perror("access denied");
 		exit(1);
@@ -147,7 +151,6 @@ int FindByPerm(char* path){
 	chdir(path);
 
 	char * path_buf = (char*)malloc(BUF_SIZE);
-	
 	while((DirectStat = readdir(DP)) != NULL){
 		if(!(DirectStat->d_ino))
 			continue;
@@ -157,11 +160,14 @@ int FindByPerm(char* path){
 			perror("lstat error");
 			return -1;
 		}
-		if(FileStat.st_mode!=optarg)
+		a = PermtoInt(tmparg,8);
+		b = (FileStat.st_mode&0777);
+		if(a!=b)
 			continue;
 
 		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
 	}
+	/*
 	rewinddir(DP);
 	while((DirectStat=readdir(DP))!=NULL){
 		if(!(DirectStat->d_ino))
@@ -174,9 +180,10 @@ int FindByPerm(char* path){
 		}
 
 		if((FileStat.st_mode & S_IFMT)==S_IFDIR){
-			FindByPerm(DirectStat->d_name);
+			FindByPerm(DirectStat->d_name, tmparg);
 		}
 	}
+	*/
 	closedir(DP);
 	chdir("..");
 	free(path_buf);
@@ -296,6 +303,14 @@ void showHelp() {
 	fprintf(stderr, "\t\t\t\t[디렉토리이름]에 지정한 디렉토리로 이동 \n"); // mv 설명 이어서
 	// fprintf(stderr, "\t |- exec [명령] {} \; : 찾은 파일들에 대한 특정 명령을 수행할 때 사용 \n"); 
 	fprintf(stderr,"======================================================================================\n");
+}
+		
+int PermtoInt(char* perm, int radix){
+	char* tmp = perm;
+	while(*tmp){
+		*tmp++;
+	}
+	return strtol(perm,(char**)NULL,radix);
 }
 		
 
