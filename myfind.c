@@ -255,50 +255,38 @@ int group(char* path, char *arg) {
      int gname;
      struct group *grp;
 
-     if((dp = opendir(path)) == NULL) {
-         //에러난 현재 디렉토리 출력
+     if((dp = opendir(path)) == NULL) { //Error for directory open
          perror("opendir");
          exit(1);
      }
 
-     while((dent = readdir(dp))) {  //.으로 시작하는 파일은 생략
+     while((dent = readdir(dp))) {  
+         //.으로 시작하는 파일은 생략
          //if(dent->d_name[0] == '.')  continue;
          //else    break;
-         sprintf(path2, "%s/%s", path, dent->d_name);
+         sprintf(path2, "%s/%s", path, dent->d_name);   //Read directory's list
          stat(path2, &sbuf);
 
-         gname = atoi(arg);
-         if(gname == (int)sbuf.st_gid) {
+         //Case1: input is id(number)
+         gname = atoi(arg); //Change char to int
+         if(gname == (int)sbuf.st_gid) {    //If input data equal to file's group id then print file name
             printf("%d %s\n", gname, dent->d_name);
-            i++;
+            i++;    //Just for check whether file which is equal to input data exist in the directory
          }
 
-         if(i != 0) {
+         if(i != 0) {   //Input data is number and there exist some file which is equal to input data in the directory
             continue;
          }
-         else if((grp = getgrnam(arg)) ==  NULL) {
-            printf("찾는 그룹명과 일치하는 파일이 없습니다.\n");
+         else if((grp = getgrnam(arg)) ==  NULL) {              //Check if input data is name(char)
+            printf("찾는 그룹명과 일치하는 파일이 없습니다.\n");   //A case that file are not exist in the directory
+            break;
          }
-         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {
+         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {    //A case that input data is name and there exist some files
             printf("%d %s\n", (int)sbuf.st_gid, dent->d_name);
          }
      }
 
-
-     //sprintf(path, "./%s", dent->d_name);    //디렉토리의 항목 읽기
-     //stat(path, &sbuf);  //stat함수로 상세 정보 검색
-
-     //strcpy(str, (char)sbuf.st_gid);   //stat의 그룹 아이디를 str에 복사 +     for문
-     //if(!strcmp(*arg, str)) {
-     //  printf("%s\n", dent->d_name);
-     //}
-     /*
-     gname = atoi(*arg);
-     if(gname == (int)sbuf.st_gid) {
-         printf("%s\n", dent->d_name);
-     }
-     */
-     closedir(dp);
+     closedir(dp);  //Close directory
 
      return 0;
 }
@@ -310,39 +298,24 @@ int empty(char* path) {
     char path2[BUFSIZ];
     //char** path1 = path;
 
-    if((dp = opendir(path)) == NULL) {
-         //에러난 현재 디렉토리 출력
+    if((dp = opendir(path)) == NULL) { //Open directory
          perror("opendir");
          exit(1);
     }
 
-    while((dent = readdir(dp))) {  //.으로 시작하는 파일은 생략
+    while((dent = readdir(dp))) {  
+        //.으로 시작하는 파일은 생략
         //if(dent->d_name[0] == '.')  continue;
         //else    break;
-        sprintf(path2, "%s/%s", path, dent->d_name);
+        sprintf(path2, "%s/%s", path, dent->d_name);    //Read directory's list
         stat(path2, &sbuf);
 
-        if((int)sbuf.st_size == 0) {
+        if((int)sbuf.st_size == 0) {    //Check whether file's size is 0
             printf("%s\n", dent->d_name);
         }
     }
 
-    /*
-    printf("test4\n");
-    printf("%s", dent->d_name);
-    sprintf(path2, "%s/%s\n", path, dent->d_name);   //디렉토리의 항목 읽기
-    printf("test5\n");
-    stat(path2, &sbuf);
-    printf("test6\n");
-
-    if((int)sbuf.st_size == 0) {
-        printf("test7\n");
-        printf("%s\n", dent->d_name);
-        printf("test8\n");
-    }
-    */
-
-    closedir(dp);
+    closedir(dp);   //Close directory
 
     return 0;
 }
