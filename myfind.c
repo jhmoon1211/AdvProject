@@ -1,321 +1,188 @@
-/* All the best for our final project */
-
-#include <sys/types.h>	//opendir, readdir
-#include <dirent.h>		//opendir, readdir
-#include <sys/stat.h>	//stat
-#include <unistd.h>	//getcwd()
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <getopt.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <fcntl.h>
-#include <sys/wait.h>
 #include <string.h>
-#include <dirent.h>
-#include <pwd.h>
+#include <stdlib.h>
 #include <grp.h>
-#include <sys/times.h>
-#include <fcntl.h>
-#define BUF_SIZE 512
-#define O_NAME   0
-#define O_PERM   1
-#define O_TYPE   2
-#define O_USER   3
-#define O_GROUP  4
-#define O_SIZE   5
-#define O_EXEC   6
-#define O_MV     7
-#define O_DELETE 8
-#define O_EMPTY  9
-#define O_HELP   10
 
-#define PATH_SIZE	1024	//path size 
+/* global variable declaration */
 
-int FindByPerm(char* path, char* arg);
-void showHelp(); // for help option
-int group(char*); 
-void empty();
-char* newpath(char* path);
-char NewFile[30];
-int PermtoInt(char* perm, int radix);
+/* global function declaration */
+void findFileWithNameOfFile(char * path, char * nameOfFile);
+int group(char *, char *);
+int empty(char *);
 
-int main(int argc, char *argv[]) {
-	char buf[BUF_SIZE];
-	int bufsize;
-	char *PathArr[100];
-	int PathNum=0;
-	char *CopyArgv[argc]; 
-	int i;
-	int index = 0;
-	int opt;
-	char *current_path = (char *)malloc(PATH_SIZE);	//현재 작업 디렉토리 이름 담을 포인터 변수
-	char *group_arg = NULL;
-	char *perm_arg = NULL;
+/* main fucn that has argc, argv */
+int main(int argc , char *argv[]) {
+	    static struct option long_options[] = {
+	        {"name",   required_argument,        0, 'n'},
+	        {"user",   required_argument,        0, 'u'},
+	        {"perm",   required_argument,        0, 'p'},
+	        {"size",   required_argument,        0, 's'},
+	        {"delete", required_argument,        0, 'd'},
+		    {"group",  required_argument,        0, 'g'},
+		    {"type",   required_argument,        0, 't'},
+		    {"mv",     required_argument,        0, 'm'},
+		    {"exec",   required_argument,        0, 'x'},
+		    {"help",         no_argument,        0, 'h'},
+		    {"empty",        no_argument,        0, 'e'},
+		    {0, 0, 0, 0}
+		};
+		int option_index = 0;
+		int opt = 0;
+		char * path = NULL;
+		char * nameOfFile = NULL;
 
-	//명령어 옵션	
-	struct option options[] = {
-		{"name", 1, 0, 0},
-		{"perm", 1, 0, 0},
-		{"type", 1, 0, 0},
-		{"user", 1, 0, 0},
-		{"group", 1, 0, 0},
-		{"size", 1, 0, 0},
-		{"exec", 1, 0, 0},
-		{"mv", 1, 0, 0},
-		{"delete", 1, 0, 0},
-		{"empty", 0, 0, 0},
-		{"help", 0, 0, 0}
-	};
-
-	for(i=0; i<argc; i++) {
-		CopyArgv[i] = malloc(strlen(argv[i]+1));
-		strcpy(CopyArgv[i], argv[i]);
-	}
-	for(i=1; i<argc; i++) {
-		if(argv[i][0] == '-') {
-			break;
+	    while (1) {
+			opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:he", long_options, &option_index);
+	        if (opt == -1) break;
+	        switch (opt) {
+	            case 'n': /* name */
+	                path = argv[1];
+	                nameOfFile = argv[3];
+	                findFileWithNameOfFile(path, nameOfFile);
+	                break;
+	            case 'u': /* user */
+	                printf("user \n");
+	                break;
+	            case 'p': /* perm */
+	                printf("perm \n");
+	                break;
+	            case 's':
+	                printf("size \n");
+	                break;
+	            case 'd':
+	                printf("delete \n");
+	                break;
+	            case 'g':
+	                printf("group \n");
+					group(argv[1], optarg);
+	                break;
+	            case 't':
+	                printf("type \n");
+	                break;
+	            case 'm':
+	                printf("mv \n");
+	                break;
+	            case 'x':
+	                printf("exec \n");
+	                break;
+	            case 'h':
+	                printf("help \n");
+	                break;
+	            case 'e':
+	                printf("empty \n");
+					empty(argv[1]);
+	                break;
+	        }
 		}
-		PathArr[PathNum] = argv[i];
-		PathNum++;
-	}
-
-	//현재 작업 디렉토리의 이름을 PATH_SIZE만큼 길이로 current_path에 복사
-	getcwd(current_path, PATH_SIZE);	
-
-	while(1) {
-		opt = getopt_long(argc, argv, "", options, &index);	
-
-		if(opt == -1) break;	//모든 옵션을 확인하면 종료 
-
-		switch(opt) {
-			case 0:
-				switch(index) {
-					case O_NAME:		// name
-						break;
-					case O_PERM:		//perm
-						printf("pathnum: %d argc: %d\n",PathNum,argc);
-						perm_arg = optarg;
-						if(PathNum==0){
-							FindByPerm(".",perm_arg);
-							getcwd(buf,bufsize);
-							chdir(buf);
-						}
-						for(i=0;i<PathNum;i++){
-							FindByPerm(PathArr[i],perm_arg);
-							getcwd(buf,bufsize);
-							chdir(buf);
-						}
-						break;
-					case O_TYPE:		//type
-						break;
-					case O_USER:		//user
-						break;
-					case O_GROUP:		//group
-						group_arg = optarg;		//--group
-						group(group_arg);
-						break;
-					case O_SIZE:		//size
-						break;
-					case O_EXEC:		//exec
-						break;
-					case O_MV:		//mv
-						break;
-					case O_DELETE:		//delete
-						break;
-					case O_EMPTY:		//empty
-						empty(current_path);
-						break;
-					case O_HELP:	//help
-						showHelp();
-						break;
-				}
-		}
-	}
-	return 0;
+		return 0;
 }
 
-int FindByPerm(char* path, char* arg){
-	DIR* DP;
-	struct stat FileStat;
-	char buf2[BUF_SIZE];
-	struct dirent *DirectStat;
-	char permbuf[5];
-	char permbuf1[5];
-	char *tmparg=arg;
-	FILE *fd;
-	int a,b;
-	if(access(path,R_OK)){
-		perror("access denied");
-		exit(1);
-	}
-	if(!(DP=opendir(path))){
-		path = (char *)newpath(path);
-		if(!(DP=opendir(path))){
-			perror("opendir error");
-			return -1;
-		}
-	}
-	chdir(path);
-
-	char * path_buf = (char*)malloc(BUF_SIZE);
-	while((DirectStat = readdir(DP)) != NULL){
-		if(!(DirectStat->d_ino))
-			continue;
-		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
-			continue;
-		if(lstat(DirectStat->d_name, &FileStat)<0){
-			perror("lstat error");
-			return -1;
-		}
-		a = PermtoInt(tmparg,8);
-		b = (FileStat.st_mode&0777);
-		if(a!=b)
-			continue;
-
-		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
-	}
-	/*
-	rewinddir(DP);
-	while((DirectStat=readdir(DP))!=NULL){
-		if(!(DirectStat->d_ino))
-			continue;
-		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
-			continue;
-		if(lstat(DirectStat->d_name, &FileStat)<0){
-			perror("lstat error");
-			return -1;
-		}
-
-		if((FileStat.st_mode & S_IFMT)==S_IFDIR){
-			FindByPerm(DirectStat->d_name, tmparg);
-		}
-	}
-	*/
-	closedir(DP);
-	chdir("..");
-	free(path_buf);
-	return 0;
+void findFileWithNameOfFile(char * path, char * nameOfFile) {
+	    printf("%s \n", path); // path
+		printf("%s \n", nameOfFile); // name of file
 }
 
-char* newpath(char* path){
-	int len,i,j=0,k=0;
-	char path1[100];
+int group(char* path, char *arg) {
+     DIR *dp;
+     struct dirent *dent;
+     struct stat sbuf;
+     char path2[BUFSIZ];
+     int i = 0;
+     //char str[255];    //함수의 그룹 아이디 저장 배열
+     int gname;
+     struct group *grp;
 
-	len = strlen(path);
-	strcpy(path1,path);
-	for(i=len;i>0;i--){
-		if(path1[i]=='/'){
-			j=i;
-			break;
-		}
-	}
-	j++;
-	for (i=j;i<=len;i++){
-		NewFile[k++]=path1[i];
-		path1[i] = NULL;
-	}
-	NewFile[k] = NULL;
-	strcpy(path,path1);
-	return path;
+     if((dp = opendir(path)) == NULL) {
+         //에러난 현재 디렉토리 출력
+         fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
+         exit(1);
+     }
 
-	//현재 작업 디렉토리의 이름을 PATH_SIZE만큼 길이로 current_path에 복사
-	//getcwd(current_path, PATH_SIZE);	
+     while((dent = readdir(dp))) {  //.으로 시작하는 파일은 생략
+         //if(dent->d_name[0] == '.')  continue;
+         //else    break;
+         sprintf(path2, "%s/%s", path, dent->d_name);
+         stat(path2, &sbuf);
 
-	//for(i = 0; i < pathNum; i++) {
-    //	group(copyArgv[i]);
-	//	chdir(current_path);	//current_path로 디렉토리 이동
-	//}
+         gname = atoi(arg);
+         if(gname == (int)sbuf.st_gid) {
+            printf("%d %s\n", gname, dent->d_name);
+            i++;
+         }
 
-	return 0;
+         if(i != 0) {
+            continue;
+         }
+         else if((grp = getgrnam(arg)) ==  NULL) {
+            printf("찾는 그룹명과 일치하는 파일이 없습니다.\n");
+         }
+         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {
+            printf("%d %s\n", (int)sbuf.st_gid, dent->d_name);
+         }
+     }
+
+     //sprintf(path, "./%s", dent->d_name);    //디렉토리의 항목 읽기
+     //stat(path, &sbuf);  //stat함수로 상세 정보 검색
+
+     //strcpy(str, (char)sbuf.st_gid);   //stat의 그룹 아이디를 str에 복사 +     for문
+     //if(!strcmp(*arg, str)) {
+     //  printf("%s\n", dent->d_name);
+     //}
+     /*
+     gname = atoi(*arg);
+     if(gname == (int)sbuf.st_gid) {
+         printf("%s\n", dent->d_name);
+     }
+     */
+     closedir(dp);
+
+     return 0;
 }
 
-int group(char* arg) {
-	DIR *dp;
-	struct dirent *dent;
-	struct stat sbuf;
-	char path[BUFSIZ];
-	int i;
-	//char str[255];	//함수의 그룹 아이디 저장 배열
-	int gname;
+int empty(char* path) {
+    DIR *dp;
+    struct dirent *dent;
+    struct stat sbuf;
+    char path2[BUFSIZ];
+    //char** path1 = path;
 
-	if((dp = opendir(".")) == NULL) {
-		//에러난 현재 디렉토리 출력
-		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
-		exit(1);
-	}
+    if((dp = opendir(path)) == NULL) {
+         //에러난 현재 디렉토리 출력
+		 perror("opendir");
+         exit(1);
+    }
 
-	while((dent == readdir(dp))) {	//.으로 시작하는 파일은 생략
-		if(dent->d_name[0] == '.')	continue;
-		else	break;
-	}
+    while((dent = readdir(dp))) {  //.으로 시작하는 파일은 생략
+        //if(dent->d_name[0] == '.')  continue;
+        //else    break;
+        sprintf(path2, "%s/%s", path, dent->d_name);
+        stat(path2, &sbuf);
 
-	sprintf(path, "./%s", dent->d_name);	//디렉토리의 항목 읽기
-	stat(path, &sbuf);	//stat함수로 상세 정보 검색
+        if((int)sbuf.st_size == 0) {
+	        printf("%s\n", dent->d_name);
+        }
+    }
 
-	//strcpy(str, (char)sbuf.st_gid);	//stat의 그룹 아이디를 str에 복사 + for문
-	//if(!strcmp(*arg, str)) {
-	//	printf("%s\n", dent->d_name);
-	//}
-	gname = atoi(*arg);
-	if(gname == (int)sbuf.st_gid) {
-		printf("%s\n", dent->d_name);
-	}
+    /*
+    printf("test4\n");
+    printf("%s", dent->d_name);
+    sprintf(path2, "%s/%s\n", path, dent->d_name);   //디렉토리의 항목 읽기
+    printf("test5\n");
+    stat(path2, &sbuf);
+    printf("test6\n");
 
-	closedir(dp);
+    if((int)sbuf.st_size == 0) {
+        printf("test7\n");
+        printf("%s\n", dent->d_name);
+        printf("test8\n");
+    }
+    */
 
-	return 0;
-}
+    closedir(dp);
 
-void empty(char* path) {
-	DIR *dp;
-	struct dirent *dent;
-	struct stat sbuf;
-	char path2[BUFSIZ];
-	//char** path1 = path;
-
-	if((dp = opendir(*path)) == NULL) {
-		//에러난 현재 디렉토리 출력
-		fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
-		exit(1);
-	}
-
-	while((dent == readdir(dp))) {	//.으로 시작하는 파일은 생략
-		if(dent->d_name[0] == '.')	continue;
-		else	break;
-	}
-
-	sprintf(path2, "./%s", dent->d_name);	//디렉토리의 항목 읽기
-	stat(path2, &sbuf);
-
-	if((int)sbuf.st_size == 0) {
-		printf("%s\n", dent->d_name);
-	}
-
-	closedir(dp);
-}
-
-void showHelp() {
-	fprintf(stderr,"======================================================================================\n");
-	fprintf(stderr, "|--------- myfind [경로 1]...[경로 n] [---옵션 1][패턴]...[---옵션 n][패턴] ---------| \n");
-	fprintf(stderr, "\t |- name [파일이름] : [파일이름]과 일치하는 파일 검색 \n");
-	fprintf(stderr, "\t |- user [유저이름] : [유저이름]과 일치하는 파일 검색 \n");
-	fprintf(stderr, "\t |- help : find명령어에 대한 설명 출력 \n");
-	fprintf(stderr, "\t |- perm [파일권한] : [파일권한]과 일치하는 파일 검색 \n");
-	fprintf(stderr, "\t |- size [파일용량] : [파일용량]과 이상의 파일 검색 \n");
-	fprintf(stderr, "\t |- delete [파일이름] : [파일이름]에 지정한 파일을 검색하고 삭제 \n");
-	fprintf(stderr, "\t |- group [그룹이름] : [그룹이름]과 일치하는 파일 검색 \n");
-	fprintf(stderr, "\t |- type [파일종류] : [파일종류] 지정하여 파일 검색 \n");
-	fprintf(stderr, "\t |- empty : 빈 파일 검색 \n");
-	fprintf(stderr, "\t |- mv [파일이름] [디렉토리이름] : [파일이름]의 파일을 찾아서 경로를 출력하고, \n");
-	fprintf(stderr, "\t\t\t\t[디렉토리이름]에 지정한 디렉토리로 이동 \n"); // mv 설명 이어서
-	// fprintf(stderr, "\t |- exec [명령] {} \; : 찾은 파일들에 대한 특정 명령을 수행할 때 사용 \n");
-	firintf(stderr,"======================================================================================\n");
-}
-		
-int PermtoInt(char* perm, int radix){
-	char* tmp = perm;
-	while(*tmp){
-		*tmp++;
-	}
-	return strtol(perm,(char**)NULL,radix);
+    return 0;
 }
