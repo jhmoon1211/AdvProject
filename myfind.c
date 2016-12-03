@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 	int bufsize;
 	char *PathArr[100];
 	int PathNum=0;
-	char *CopyArgv[argc];
+	char *CopyArgv[argc]; // eeㅇd
 	int i;
 	int index = 0;
 	int opt;
