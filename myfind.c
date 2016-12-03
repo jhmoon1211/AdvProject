@@ -13,8 +13,10 @@
 void findFilesWithNameOfFile(char *, char *);
 void findFilesWithNameOfUser(char *, char *);
 void showHowToUseMYFIND();
-int group(char *, char *);
-int empty(char *);
+void group(char *, char *);
+void empty(char *);
+void type(char *, char *);
+
 
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
@@ -39,7 +41,7 @@ int main(int argc , char *argv[]) {
     char * nameOfUser = NULL;
 
     while (1) {
-        opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:h:e:", long_options, &option_index);
+        opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:h:e", long_options, &option_index);
         if (opt == -1) break;
         switch (opt) {
             case 'n': /* name */
@@ -67,6 +69,7 @@ int main(int argc , char *argv[]) {
                 break;
             case 't':
                 printf("type \n");
+				type(argv[1], optarg);
                 break;
             case 'm':
                 printf("mv \n");
@@ -245,53 +248,51 @@ void showHowToUseMYFIND() {
     fprintf(stderr,"======================================================================================\n");
 }
 
-int group(char* path, char *arg) {
+void group(char* path, char *arg) {
     DIR *dp;
     struct dirent *dent;
-     struct stat sbuf;
-     char path2[BUFSIZ];
-     int i = 0;
-     //char str[255];    //함수의 그룹 아이디 저장 배열
-     int gname;
-     struct group *grp;
+    struct stat sbuf;
+    char path2[BUFSIZ];
+    int i = 0;
+    //char str[255];    //함수의 그룹 아이디 저장 배열
+    int gname;
+    struct group *grp;
 
-     if((dp = opendir(path)) == NULL) { //Error for directory open
-         perror("opendir");
-         exit(1);
-     }
+    if((dp = opendir(path)) == NULL) { //Error for directory open
+        perror("opendir");
+        exit(1);
+    }
 
-     while((dent = readdir(dp))) {  
-         //.으로 시작하는 파일은 생략
-         //if(dent->d_name[0] == '.')  continue;
-         //else    break;
-         sprintf(path2, "%s/%s", path, dent->d_name);   //Read directory's list
-         stat(path2, &sbuf);
+    while((dent = readdir(dp))) {  
+        //.으로 시작하는 파일은 생략
+        //if(dent->d_name[0] == '.')  continue;
+        //else    break;
+        sprintf(path2, "%s/%s", path, dent->d_name);   //Read directory's list
+        stat(path2, &sbuf);
 
-         //Case1: input is id(number)
-         gname = atoi(arg); //Change char to int
-         if(gname == (int)sbuf.st_gid) {    //If input data equal to file's group id then print file name
-            printf("%d %s\n", gname, dent->d_name);
-            i++;    //Just for check whether file which is equal to input data exist in the directory
-         }
+        //Case1: input is id(number)
+        gname = atoi(arg); //Change char to int
+        if(gname == (int)sbuf.st_gid) {    //If input data equal to file's group id then print file name
+           printf("%d %s\n", gname, dent->d_name);
+           i++;    //Just for check whether file which is equal to input data exist in the directory
+        }
 
-         if(i != 0) {   //Input data is number and there exist some file which is equal to input data in the directory
-            continue;
-         }
-         else if((grp = getgrnam(arg)) ==  NULL) {              //Check if input data is name(char)
-            printf("찾는 그룹명과 일치하는 파일이 없습니다.\n");   //A case that file are not exist in the directory
-            break;
-         }
-         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {    //A case that input data is name and there exist some files
-            printf("%d %s\n", (int)sbuf.st_gid, dent->d_name);
-         }
-     }
+        if(i != 0) {   //Input data is number and there exist some file which is equal to input data in the directory
+           continue;
+        }
+        else if((grp = getgrnam(arg)) ==  NULL) {              //Check if input data is name(char)
+           printf("찾는 그룹명과 일치하는 파일이 없습니다.\n");   //A case that file are not exist in the directory
+           break;
+        }
+        else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {    //A case that input data is name and there exist some files
+           printf("%d %s\n", (int)sbuf.st_gid, dent->d_name);
+        }
+    }
 
-     closedir(dp);  //Close directory
-
-     return 0;
+    closedir(dp);  //Close directory
 }
 
-int empty(char* path) {
+void empty(char* path) {
     DIR *dp;
     struct dirent *dent;
     struct stat sbuf;
@@ -316,9 +317,51 @@ int empty(char* path) {
     }
 
     closedir(dp);   //Close directory
-
-    return 0;
 }
 
+void type(char* path, char* arg) {
+	DIR *dp;
+    struct dirent *dent;
+    struct stat sbuf;
+    char path2[BUFSIZ];
+    int arg_type, type;
+    int i = 0;
 
+    if((dp = opendir(path)) == NULL) {  //Directory open
+        perror("opendir");
+        exit(1);
+    }
 
+    switch(*arg) {      //Argument meaning
+        case '-':       //Regular file
+            arg_type = S_IFREG;
+            break;
+        case 'd':       //Directory
+            arg_type = S_IFDIR;
+            break;
+        case 'b':       //Block
+            arg_type = S_IFBLK;
+            break;
+        case 'c':       //Character
+            arg_type = S_IFCHR;
+            break;
+        case 'l':       //Symbolic
+            arg_type = S_IFLNK;
+            break;
+    }
+
+    while(dent = readdir(dp)) {
+        sprintf(path2, "%s/%s", path, dent->d_name);
+        stat(path2, &sbuf);
+
+        type = sbuf.st_mode & S_IFMT;
+        if(arg_type == type) {
+            printf("%s\n", dent->d_name);
+            i = 1;
+        }
+    }
+
+    if(i == 0) {
+	    printf("ã�� Ÿ���� ������ �������� �ʽ��ϴ�.\n");
+    }
+}
