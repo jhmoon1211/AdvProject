@@ -267,16 +267,6 @@ char* newpath(char* path){
 	NewFile[k] = NULL;
 	strcpy(path,path1);
 	return path;
-
-	//현재 작업 디렉토리의 이름을 PATH_SIZE만큼 길이로 current_path에 복사
-	//getcwd(current_path, PATH_SIZE);	
-
-	//for(i = 0; i < pathNum; i++) {
-    //	group(copyArgv[i]);
-	//	chdir(current_path);	//current_path로 디렉토리 이동 
-	//}
-
-	return 0;
 }
 
 int group(char* arg) {
