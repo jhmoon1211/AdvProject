@@ -69,14 +69,14 @@ int main(int argc, char *argv[]) {
 	};
 
 	for(i=0; i<argc; i++) {
-		CopyArgv[i] = malloc(strlen(argv[i]+1));
+		CopyArgv[i] = malloc(strlen(argv[i]+1)); // 매개변수를 임시변수에 저장
 		strcpy(CopyArgv[i], argv[i]);
 	}
 	for(i=1; i<argc; i++) {
 		if(argv[i][0] == '-') {
 			break;
 		}
-		PathArr[PathNum] = argv[i];
+		PathArr[PathNum] = argv[i]; // 경로는 여러개 올 수있으므로 경로는 따로 변수에 저장
 		PathNum++;
 	}
 
@@ -160,31 +160,31 @@ int FindByPerm(char* path, char* arg){
 		perror("access denied");
 		exit(1);
 	}
+	
 	if(!(DP=opendir(path))){
-		path = (char *)newpath(path);
-		if(!(DP=opendir(path))){
-			perror("opendir error");
-			return -1;
-		}
+		perror("opendir error");
+		return -1;
 	}
+	
 	chdir(path);
 
 	char * path_buf = (char*)malloc(BUF_SIZE);
 	while((DirectStat = readdir(DP)) != NULL){
-		if(!(DirectStat->d_ino))
+		if(!(DirectStat->d_ino)) // 아이노드가 0이면 패스
 			continue;
-		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . 나 ..는 패스
 			continue;
+		// lstat으로 파일정보 저장하기
 		if(lstat(DirectStat->d_name, &FileStat)<0){
 			perror("lstat error");
 			return -1;
 		}
-		a = PermtoInt(tmparg,8);
-		b = (FileStat.st_mode&0777);
+		a = PermtoInt(tmparg,8); // 입력받은 매개변수를 8진수 정수형으로 변경
+		b = (FileStat.st_mode&0777); // 파일의 권한 저장
 		if(a!=b)
 			continue;
-
-		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		// 패스안된 파일 출력
+		printf("%s  %s %o\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
 	}
 	closedir(DP);
 	chdir("..");
@@ -207,17 +207,16 @@ int FindBySize(char* path, char* arg){
 		perror("access denied");
 		exit(1);
 	}
+	
 	if(!(DP=opendir(path))){
-		path = (char *)newpath(path);
-		if(!(DP=opendir(path))){
-			perror("opendir error");
-			return -1;
-		}
+		perror("opendir error");
+		return -1;
 	}
+	
 	chdir(path);
-	giho = tmparg[0];
-	Eliminate(tmparg,'+');
-	Eliminate(tmparg,'-');
+	giho = tmparg[0]; // 숫자앞의 부호를 저장
+	Eliminate(tmparg,'+'); // 숫자앞 +기호 제거
+	Eliminate(tmparg,'-'); // 숫자앞 -기호 제거
 	char * path_buf = (char*)malloc(BUF_SIZE);
 	while((DirectStat = readdir(DP)) != NULL){
 		if(!(DirectStat->d_ino))
@@ -228,45 +227,23 @@ int FindBySize(char* path, char* arg){
 			perror("lstat error");
 			return -1;
 		}
-		a = PermtoInt(tmparg,10);
-		b = (FileStat.st_size);
-
+		a = PermtoInt(tmparg,10); // 매개변수를 10진수 정수로 변경
+		b = (FileStat.st_size); // 파일 사이즈 저장
+		// 기호가 +인경우 입력값보다 작은 파일 패스
 		if((giho=='+')&(a>b)){
 			continue;
 		}
+		// 기호가 -인경우 입력값보다 큰 파일 패스
 		if((giho=='-')&(a<b)){
 			continue;
 		}
 
-		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		printf("%s  %s %d\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
 	}
 	closedir(DP);
 	chdir("..");
 	free(path_buf);
 	return 0;
-}
-
-
-char* newpath(char* path){
-	int len,i,j=0,k=0;
-	char path1[100];
-
-	len = strlen(path);
-	strcpy(path1,path);
-	for(i=len;i>0;i--){
-		if(path1[i]=='/'){
-			j=i;
-			break;
-		}
-	}
-	j++;
-	for (i=j;i<=len;i++){
-		NewFile[k++]=path1[i];
-		path1[i] = NULL;
-	}
-	NewFile[k] = NULL;
-	strcpy(path,path1);
-	return path;
 }
 
 int group(char* arg) {
