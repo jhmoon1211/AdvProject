@@ -98,7 +98,7 @@ int group(char* path, char *arg) {
 
      if((dp = opendir(path)) == NULL) {
          //에러난 현재 디렉토리 출력
-         fprintf(stderr, "opendir : %s\n", getcwd(NULL, BUFSIZ));
+		 perror("opendir");
          exit(1);
      }
 
