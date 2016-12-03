@@ -92,7 +92,13 @@ int main(int argc, char *argv[]) {
 					case O_NAME:		// 옵션이 options[0]인 name일 경우
 						break;
 					case O_PERM:		//perm인 경우
+						printf("pathnum: %d argc: %d\n",PathNum,argc);
 						perm_arg = optarg;
+						if(PathNum==0){
+							FindByPerm(".",perm_arg);
+							getcwd(buf,bufsize);
+							chdir(buf);
+						}
 						for(i=0;i<PathNum;i++){
 							FindByPerm(PathArr[i],perm_arg);
 							getcwd(buf,bufsize);
@@ -134,7 +140,7 @@ int FindByPerm(char* path, char* arg){
 	struct dirent *DirectStat;
 	char permbuf[5];
 	char permbuf1[5];
-	char *tmparg = arg;
+	char *tmparg=arg;
 	FILE *fd;
 	int a,b;
 	if(access(path,R_OK)){
