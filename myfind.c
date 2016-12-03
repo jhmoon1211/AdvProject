@@ -31,7 +31,7 @@
 
 #define PATH_SIZE	1024	//path 크기
 
-int FindByPerm(char* path, char* arg,int pathnum);
+int FindByPerm(char* path, char* arg);
 void showHelp(); // for help option
 int group(char*); 
 void empty();
@@ -94,8 +94,13 @@ int main(int argc, char *argv[]) {
 					case O_PERM:		//perm인 경우
 						printf("pathnum: %d argc: %d\n",PathNum,argc);
 						perm_arg = optarg;
+						if(PathNum==0){
+							FindByPerm(".",perm_arg);
+							getcwd(buf,bufsize);
+							chdir(buf);
+						}
 						for(i=0;i<PathNum;i++){
-							FindByPerm(PathArr[i],perm_arg,PathNum);
+							FindByPerm(PathArr[i],perm_arg);
 							getcwd(buf,bufsize);
 							chdir(buf);
 						}
@@ -128,32 +133,28 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-int FindByPerm(char* path, char* arg, int pathnum){
+int FindByPerm(char* path, char* arg){
 	DIR* DP;
 	struct stat FileStat;
 	char buf2[BUF_SIZE];
 	struct dirent *DirectStat;
 	char permbuf[5];
 	char permbuf1[5];
-	char *tmparg = path;
+	char *tmparg=arg;
 	FILE *fd;
 	int a,b;
-	strcpy(tmparg,path);
-	if(pathnum==0){
-		tmparg=".";
-	}
-	if(access(tmparg,R_OK)){
+	if(access(path,R_OK)){
 		perror("access denied");
 		exit(1);
 	}
-	if(!(DP=opendir(tmparg))){
-		tmparg = (char *)newpath(tmparg);
-		if(!(DP=opendir(tmparg))){
+	if(!(DP=opendir(path))){
+		path = (char *)newpath(path);
+		if(!(DP=opendir(path))){
 			perror("opendir error");
 			return -1;
 		}
 	}
-	chdir(tmparg);
+	chdir(path);
 
 	char * path_buf = (char*)malloc(BUF_SIZE);
 	while((DirectStat = readdir(DP)) != NULL){
