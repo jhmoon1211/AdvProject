@@ -32,6 +32,8 @@
 #define PATH_SIZE	1024	//path ÌÅ¨Í∏∞
 
 int FindByPerm(char* path, char* arg);
+int FindBySize(char* path, char* arg);
+void Eliminate(char *str, char ch);
 void showHelp(); // for help option
 int group(char*); 
 void empty();
@@ -42,7 +44,7 @@ int main(int argc, char *argv[]) {
 	char buf[BUF_SIZE];
 	int bufsize;
 	char *PathArr[100];
-	int PathNum=0;
+	int PathNum=0; // ¿‘∑¬«— ∞Ê∑Œ∞™ ºˆ
 	char *CopyArgv[argc]; // ee„Öád
 	int i;
 	int index = 0;
@@ -114,6 +116,17 @@ int main(int argc, char *argv[]) {
 						group(group_arg);
 						break;
 					case O_SIZE:		//sizeÏù∏ Í≤ΩÏö∞
+						perm_arg = optarg;
+						if(PathNum==0){
+							FindBySize(".",perm_arg);
+							getcwd(buf,bufsize);
+							chdir(buf);
+						}
+						for(i=0;i<PathNum;i++){
+							FindBySize(PathArr[i],perm_arg);
+							getcwd(buf,bufsize);
+							chdir(buf);
+						}
 						break;
 					case O_EXEC:		//execÏù∏ Í≤ΩÏö∞
 						break;
@@ -173,9 +186,40 @@ int FindByPerm(char* path, char* arg){
 
 		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
 	}
-	/*
-	rewinddir(DP);
-	while((DirectStat=readdir(DP))!=NULL){
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int FindBySize(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	FILE *fd;
+	int a,b;
+	char giho;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+	if(!(DP=opendir(path))){
+		path = (char *)newpath(path);
+		if(!(DP=opendir(path))){
+			perror("opendir error");
+			return -1;
+		}
+	}
+	chdir(path);
+	giho = tmparg[0];
+	Eliminate(tmparg,'+');
+	Eliminate(tmparg,'-');
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
 		if(!(DirectStat->d_ino))
 			continue;
 		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
@@ -184,17 +228,24 @@ int FindByPerm(char* path, char* arg){
 			perror("lstat error");
 			return -1;
 		}
+		a = PermtoInt(tmparg,10);
+		b = (FileStat.st_size);
 
-		if((FileStat.st_mode & S_IFMT)==S_IFDIR){
-			FindByPerm(DirectStat->d_name, tmparg);
+		if((giho=='+')&(a>b)){
+			continue;
 		}
+		if((giho=='-')&(a<b)){
+			continue;
+		}
+
+		printf("%s  %s\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
 	}
-	*/
 	closedir(DP);
 	chdir("..");
 	free(path_buf);
 	return 0;
 }
+
 
 char* newpath(char* path){
 	int len,i,j=0,k=0;
@@ -319,7 +370,15 @@ int PermtoInt(char* perm, int radix){
 	return strtol(perm,(char**)NULL,radix);
 }
 		
-
+void Eliminate(char *str, char ch){
+	for (;*str!='\0';str++){
+		if(*str==ch)
+		{
+			strcpy(str,str+1);
+			str--;
+		}
+	}
+}
 
 
 
