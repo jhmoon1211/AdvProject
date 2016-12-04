@@ -6,9 +6,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <grp.h>
-
+#include <limits.h>
+#include <unistd.h>
 /* global variable declaration */
-
+#define BUF_SIZE 512
 /* global function declaration */
 void findFilesWithNameOfFile(char *, char *);
 void findFilesWithNameOfUser(char *, char *);
@@ -16,7 +17,10 @@ void showHowToUseMYFIND();
 void group(char *, char *);
 void empty(char *);
 void type(char *, char *);
-
+int FindByPerm(char *path, char* arg);
+int FindBySize(char *path, char* arg);
+void Eliminate(char *str, char ch);
+int StringtoInt(char* str, int radix);
 
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
@@ -39,6 +43,11 @@ int main(int argc , char *argv[]) {
     char * path = NULL;
     char * nameOfFile = NULL;
     char * nameOfUser = NULL;
+	char buf[BUF_SIZE];
+	int i;
+	int index =0;
+	char *perm_arg = NULL;
+	char *size_arg = NULL;
 
     while (1) {
         opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:h:e", long_options, &option_index);
@@ -56,9 +65,15 @@ int main(int argc , char *argv[]) {
                 break;
             case 'p': /* perm */
                 printf("perm \n");
+				path = argv[1];
+				perm_arg = optarg;
+				FindByPerm(path, perm_arg);
                 break;
             case 's':
                 printf("size \n");
+				path = argv[1];
+				size_arg = optarg;
+				FindBySize(path, perm_arg);
                 break;
             case 'd':
                 printf("delete \n");
@@ -364,4 +379,125 @@ void type(char* path, char* arg) {
     if(i == 0) {
 	    printf("찾는 타입의 파일이 존재하지 않습니다.\n");
     }
+}
+
+
+int FindByPerm(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	FILE *fd;
+	int a,b;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // 아이노드가 0이면 패스
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . 나 ..는 패스
+			continue;
+		// lstat으로 파일정보 저장하기
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		a = StringtoInt(tmparg,8); // 입력받은 매개변수를 8진수 정수형?막?변경
+		b = (FileStat.st_mode&0777); // 파일의 권한 저장
+		if(a!=b)
+			continue;
+		// 패스안된 파일 출력
+		printf("%s  %s %o\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
+	}
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int FindBySize(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	FILE *fd;
+	int a,b;
+	char giho;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+	giho = tmparg[0]; // 숫자앞의 부호를 저장
+	Eliminate(tmparg,'+'); // 숫자앞 +기호 제거
+	Eliminate(tmparg,'-'); // 숫자앞 -기호 제거
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		a = StringtoInt(tmparg,10); // 매개변수를 10진수 정수로 변경
+		b = (FileStat.st_size); // 파일 사이즈 저장
+		// 기호가 +인경우 입력값보다 작은 파일 패스
+		if((giho=='+')&(a>b)){
+			continue;
+		}
+		// 기호가 -인경우 입력값보다 큰 파일 패스
+		if((giho=='-')&(a<b)){
+			continue;
+		}
+
+		printf("%s  %s %d\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
+	}
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+
+
+int StringtoInt(char* str, int radix){
+	char* tmp = str;
+	while(*tmp){
+		*tmp++;
+	}
+	return strtol(str,(char**)NULL,radix);
+}
+
+void Eliminate(char *str, char ch){
+	for (;*str!='\0';str++){
+		if(*str==ch)
+		{
+			strcpy(str,str+1);
+			str--;
+		}
+	}
 }
