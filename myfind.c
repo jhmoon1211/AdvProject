@@ -8,6 +8,7 @@
 #include <grp.h>
 #include <limits.h>
 #include <unistd.h>
+#include <fnmatch.h>
 /* global variable declaration */
 #define BUF_SIZE 512
 /* global function declaration */
@@ -21,7 +22,7 @@ int FindByPerm(char *path, char* arg);
 int FindBySize(char *path, char* arg);
 void Eliminate(char *str, char ch);
 int StringtoInt(char* str, int radix);
-
+int DeleteByName(char* path, char* arg);
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
     static struct option long_options[] = {
@@ -48,6 +49,7 @@ int main(int argc , char *argv[]) {
 	int index =0;
 	char *perm_arg = NULL;
 	char *size_arg = NULL;
+	char *mv_arg = NULL;
 
     while (1) {
         opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:h:e", long_options, &option_index);
@@ -77,6 +79,9 @@ int main(int argc , char *argv[]) {
                 break;
             case 'd':
                 printf("delete \n");
+				path = argv[1];
+				nameOfFile = argv[3];
+				DeleteByName(path, nameOfFile);
                 break;
             case 'g':
                 printf("group \n");
@@ -482,7 +487,50 @@ int FindBySize(char* path, char* arg){
 	return 0;
 }
 
+int DeleteByName(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	FILE *fd;
+	int a,b;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
 
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // 아이노드가 0이면 패스
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . 나 ..는 패스
+			continue;
+		// lstat으로 파일정보 저장하기
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if(fnmatch(tmparg,DirectStat->d_name,0))
+			continue;
+		// 패스안된 파일 출력
+		printf("%s  %s is deleted\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		unlink(DirectStat->d_name);
+	}
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
 
 int StringtoInt(char* str, int radix){
 	char* tmp = str;
