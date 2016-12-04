@@ -23,6 +23,7 @@ int FindBySize(char *path, char* arg);
 void Eliminate(char *str, char ch);
 int StringtoInt(char* str, int radix);
 int DeleteByName(char* path, char* arg);
+int MvByName(char* path, char* arg, char* arg2);
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
     static struct option long_options[] = {
@@ -93,6 +94,10 @@ int main(int argc , char *argv[]) {
                 break;
             case 'm':
                 printf("mv \n");
+				path=argv[1];
+				nameOfFile = argv[3];
+				mv_arg = argv[4];
+				MvByName(path, nameOfFile,mv_arg);
                 break;
             case 'x':
                 printf("exec \n");
@@ -385,7 +390,84 @@ void type(char* path, char* arg) {
 	    printf("찾는 타입의 파일이 존재하지 않습니다.\n");
     }
 }
+int MvByName(char* path, char* arg, char* arg2){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	char buf[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	char *tmparg2=arg2;
+	char *currentfile=NULL;
+	char *currentpath=NULL;
+	FILE *fd;
+	int a,b;
+	FILE *rfp, *wfp;
+	int n;
+	char *cwd;
+	char wd[BUF_SIZE];
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
 
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // 아이노드가 0이면 패스
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . 나 ..는 패스
+			continue;
+		// lstat으로 파일정보 저장하기
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if(fnmatch(tmparg,DirectStat->d_name,0))
+			continue;
+		// 패스안된 파일 출력
+		printf("%s  %s \n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		currentpath = getcwd(path_buf,BUF_SIZE);
+		currentfile = DirectStat->d_name;
+	}
+	
+	printf("%s\n",currentfile);
+	chdir(currentpath);
+	if ((rfp = fopen(currentfile,"r")) == NULL){ // 이름을 변경할 파일 오픈
+		perror("fopen:fail");
+		exit(1);
+	}
+	chdir(tmparg2); // 지정한 디렉토리
+
+
+	if((wfp = fopen(currentfile,"w")) ==NULL){ // 변경할 이름명을 가진 임시 파일 생성
+		perror("fopen:fail");
+		exit(1);
+	}
+	while ((n = fread(buf, 1,BUFSIZ,rfp))>0){
+		fwrite(buf,1,n,wfp); // 임시파일에 오픈한 파일을 복사
+	}
+	chdir(currentpath); // 현재 위치에서 상위 디렉토리로 이동
+	fclose(rfp);
+	fclose(wfp);
+	unlink(tmparg);
+
+
+
+
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
 
 int FindByPerm(char* path, char* arg){
 	DIR* DP;
