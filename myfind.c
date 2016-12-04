@@ -437,9 +437,8 @@ int MvByName(char* path, char* arg, char* arg2){
 		printf("%s  %s \n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
 		currentpath = getcwd(path_buf,BUF_SIZE);
 		currentfile = DirectStat->d_name;
-	}
+
 	
-	printf("%s\n",currentfile);
 	chdir(currentpath);
 	if ((rfp = fopen(currentfile,"r")) == NULL){ // 이름을 변경할 파일 오픈
 		perror("fopen:fail");
@@ -455,13 +454,16 @@ int MvByName(char* path, char* arg, char* arg2){
 	while ((n = fread(buf, 1,BUFSIZ,rfp))>0){
 		fwrite(buf,1,n,wfp); // 임시파일에 오픈한 파일을 복사
 	}
-	chdir(currentpath); // 현재 위치에서 상위 디렉토리로 이동
+	chdir(currentpath); // 현재 위치에서 원래 위치로 이동
 	fclose(rfp);
 	fclose(wfp);
-	unlink(tmparg);
+	unlink(currentfile); //이동시킨 파일은 삭제
 
 
 
+
+
+	}
 
 	closedir(DP);
 	chdir("..");
