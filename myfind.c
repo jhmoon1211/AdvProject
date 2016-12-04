@@ -73,7 +73,7 @@ int main(int argc , char *argv[]) {
                 printf("size \n");
 				path = argv[1];
 				size_arg = optarg;
-				FindBySize(path, perm_arg);
+				FindBySize(path, size_arg);
                 break;
             case 'd':
                 printf("delete \n");
