@@ -24,6 +24,7 @@ void Eliminate(char *str, char ch);
 int StringtoInt(char* str, int radix);
 int DeleteByName(char* path, char* arg);
 int MvByName(char* path, char* arg, char* arg2);
+char *tmparg1=NULL;
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
     static struct option long_options[] = {
@@ -67,19 +68,18 @@ int main(int argc , char *argv[]) {
                 findFilesWithNameOfUser(path, nameOfUser);
                 break;
             case 'p': /* perm */
-                printf("perm \n");
 				path = argv[1];
 				perm_arg = optarg;
+				tmparg1=argv[3];
 				FindByPerm(path, perm_arg);
                 break;
             case 's':
-                printf("size \n");
 				path = argv[1];
 				size_arg = optarg;
+				tmparg1=argv[3];
 				FindBySize(path, size_arg);
                 break;
             case 'd':
-                printf("delete \n");
 				path = argv[1];
 				nameOfFile = argv[3];
 				DeleteByName(path, nameOfFile);
@@ -93,7 +93,6 @@ int main(int argc , char *argv[]) {
 				type(argv[1], optarg);
                 break;
             case 'm':
-                printf("mv \n");
 				path=argv[1];
 				nameOfFile = argv[3];
 				mv_arg = argv[4];
@@ -478,7 +477,8 @@ int FindByPerm(char* path, char* arg){
 	struct dirent *DirectStat;
 	char permbuf[5];
 	char permbuf1[5];
-	char *tmparg=arg;
+	char *tmparg=(char*)malloc (strlen(arg)+1);
+	strcpy(tmparg,arg);
 	FILE *fd;
 	int a,b;
 	if(access(path,R_OK)){
@@ -511,6 +511,21 @@ int FindByPerm(char* path, char* arg){
 		// 패스안된 파일 출력
 		printf("%s  %s %o\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
 	}
+	rewinddir(DP);
+
+	while((DirectStat=readdir(DP))!=NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name,".")||!strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if((FileStat.st_mode&S_IFMT)==S_IFDIR){
+			FindByPerm(DirectStat->d_name,tmparg1);
+		}
+		}
 	closedir(DP);
 	chdir("..");
 	free(path_buf);
@@ -524,7 +539,8 @@ int FindBySize(char* path, char* arg){
 	struct dirent *DirectStat;
 	char permbuf[5];
 	char permbuf1[5];
-	char *tmparg=arg;
+	char *tmparg=(char*)malloc (strlen(arg)+1);
+	strcpy(tmparg,arg);
 	FILE *fd;
 	int a,b;
 	char giho;
@@ -539,6 +555,7 @@ int FindBySize(char* path, char* arg){
 	}
 
 	chdir(path);
+	printf("===%s\n",tmparg);
 	giho = tmparg[0]; // 숫자앞의 부호를 저장
 	Eliminate(tmparg,'+'); // 숫자앞 +기호 제거
 	Eliminate(tmparg,'-'); // 숫자앞 -기호 제거
@@ -565,6 +582,23 @@ int FindBySize(char* path, char* arg){
 
 		printf("%s  %s %d\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
 	}
+	rewinddir(DP);
+
+	while((DirectStat=readdir(DP))!=NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name,".")||!strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if((FileStat.st_mode&S_IFMT)==S_IFDIR){
+			FindBySize(DirectStat->d_name,tmparg1);
+		}
+		}
+
+
 	closedir(DP);
 	chdir("..");
 	free(path_buf);
