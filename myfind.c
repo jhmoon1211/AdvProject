@@ -555,7 +555,6 @@ int FindBySize(char* path, char* arg){
 	}
 
 	chdir(path);
-	printf("===%s\n",tmparg);
 	giho = tmparg[0]; // 숫자앞의 부호를 저장
 	Eliminate(tmparg,'+'); // 숫자앞 +기호 제거
 	Eliminate(tmparg,'-'); // 숫자앞 -기호 제거
