@@ -6,8 +6,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <grp.h>
+#include <limits.h>
+#include <unistd.h>
+#include <fnmatch.h>
 
 /* global variable declaration */
+#define BUF_SIZE 512
 
 /* global function declaration */
 void findFilesWithNameOfFile(char *, char *);
@@ -16,7 +20,13 @@ void showHowToUseMYFIND();
 void group(char *, char *);
 void empty(char *);
 void type(char *, char *);
-
+int FindByPerm(char *path, char* arg);
+int FindBySize(char *path, char* arg);
+void Eliminate(char *str, char ch);
+int StringtoInt(char* str, int radix);
+int DeleteByName(char* path, char* arg);
+int MvByName(char* path, char* arg, char* arg2);
+char *tmparg1=NULL;
 
 /* main fucn that has argc, argv */
 int main(int argc , char *argv[]) {
@@ -29,7 +39,6 @@ int main(int argc , char *argv[]) {
         {"group",  required_argument,        0, 'g'},
         {"type",   required_argument,        0, 't'},
         {"mv",     required_argument,        0, 'm'},
-        {"exec",   required_argument,        0, 'x'},
         {"help",         no_argument,        0, 'h'},
         {"empty",        no_argument,        0, 'e'},
         {0, 0, 0, 0}
@@ -39,9 +48,15 @@ int main(int argc , char *argv[]) {
     char * path = NULL;
     char * nameOfFile = NULL;
     char * nameOfUser = NULL;
+	char buf[BUF_SIZE];
+	int i;
+	int index =0;
+	char *perm_arg = NULL;
+	char *size_arg = NULL;
+	char *mv_arg = NULL;
 
     while (1) {
-        opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:x:h:e", long_options, &option_index);
+        opt = getopt_long (argc, argv, "n:u:p:s:d:g:t:m:h:e", long_options, &option_index);
         if (opt == -1) break;
         switch (opt) {
             case 'n': /* name */
@@ -55,13 +70,21 @@ int main(int argc , char *argv[]) {
                 findFilesWithNameOfUser(path, nameOfUser);
                 break;
             case 'p': /* perm */
-                printf("perm \n");
+				path = argv[1];
+				perm_arg = optarg;
+				tmparg1=argv[3];
+				FindByPerm(path, perm_arg);
                 break;
             case 's':
-                printf("size \n");
+				path = argv[1];
+				size_arg = optarg;
+				tmparg1=argv[3];
+				FindBySize(path, size_arg);
                 break;
             case 'd':
-                printf("delete \n");
+				path = argv[1];
+				nameOfFile = argv[3];
+				DeleteByName(path, nameOfFile);
                 break;
             case 'g':
                 group(argv[1], optarg);
@@ -70,12 +93,12 @@ int main(int argc , char *argv[]) {
 				type(argv[1], optarg);
                 break;
             case 'm':
-                break;
-            case 'x':
-                printf("exec \n");
+				path=argv[1];
+				nameOfFile = argv[3];
+				mv_arg = argv[4];
+				MvByName(path, nameOfFile,mv_arg);
                 break;
             case 'h':
-                printf("help \n");
                 showHowToUseMYFIND();
                 break;
             case 'e':
@@ -250,7 +273,6 @@ void group(char* path, char *arg) {
     struct stat sbuf;
     char path2[BUFSIZ];
     int i = 0;
-    //char str[255];    //í•¨ìˆ˜ì˜ ê·¸ë£¹ ì•„ì´ë”” ì €ìž¥ ë°°ì—´
     int gname;
     struct group *grp;
 
@@ -260,9 +282,6 @@ void group(char* path, char *arg) {
     }
 
     while((dent = readdir(dp))) {  
-        //.ìœ¼ë¡œ ì‹œìž‘í•˜ëŠ” íŒŒì¼ì€ ìƒëžµ
-        //if(dent->d_name[0] == '.')  continue;
-        //else    break;
         sprintf(path2, "%s/%s", path, dent->d_name);   //Read directory's list
         stat(path2, &sbuf);
 
@@ -293,7 +312,6 @@ void empty(char* path) {
     struct dirent *dent;
     struct stat sbuf;
     char path2[BUFSIZ];
-    //char** path1 = path;
 
     if((dp = opendir(path)) == NULL) { //Open directory
          perror("opendir");
@@ -301,9 +319,6 @@ void empty(char* path) {
     }
 
     while((dent = readdir(dp))) {  
-        //.ìœ¼ë¡œ ì‹œìž‘í•˜ëŠ” íŒŒì¼ì€ ìƒëžµ
-        //if(dent->d_name[0] == '.')  continue;
-        //else    break;
         sprintf(path2, "%s/%s", path, dent->d_name);    //Read directory's list
         stat(path2, &sbuf);
 
@@ -360,4 +375,281 @@ void type(char* path, char* arg) {
     if(i == 0) {
 	    printf("Ã£´Â Å¸ÀÔÀÇ ÆÄÀÏÀÌ Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n");
     }
+}
+int MvByName(char* path, char* arg, char* arg2){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	char buf[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	char *tmparg2=arg2;
+	char *currentfile=NULL;
+	char *currentpath=NULL;
+	FILE *fd;
+	int a,b;
+	FILE *rfp, *wfp;
+	int n;
+	char *cwd;
+	char wd[BUF_SIZE];
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // ¾ÆÀÌ³ëµå°¡ 0ÀÌ¸é ÆÐ½º
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . ³ª ..´Â ÆÐ½º
+			continue;
+		// lstatÀ¸·Î ÆÄÀÏÁ¤º¸ ÀúÀåÇÏ±â
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if(fnmatch(tmparg,DirectStat->d_name,0))
+			continue;
+		// ÆÐ½º¾ÈµÈ ÆÄÀÏ Ãâ·Â
+		printf("%s  %s \n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		currentpath = getcwd(path_buf,BUF_SIZE);
+		currentfile = DirectStat->d_name;
+
+	
+	chdir(currentpath);
+	if ((rfp = fopen(currentfile,"r")) == NULL){ // ÀÌ¸§À» º¯°æÇÒ ÆÄÀÏ ¿ÀÇÂ
+		perror("fopen:fail");
+		exit(1);
+	}
+	chdir(tmparg2); // ÁöÁ¤ÇÑ µð·ºÅä¸®
+
+
+	if((wfp = fopen(currentfile,"w")) ==NULL){ // º¯°æÇÒ ÀÌ¸§¸íÀ» °¡Áø ÀÓ½Ã ÆÄÀÏ »ý¼º
+		perror("fopen:fail");
+		exit(1);
+	}
+	while ((n = fread(buf, 1,BUFSIZ,rfp))>0){
+		fwrite(buf,1,n,wfp); // ÀÓ½ÃÆÄÀÏ¿¡ ¿ÀÇÂÇÑ ÆÄÀÏÀ» º¹»ç
+	}
+	chdir(currentpath); // ÇöÀç À§Ä¡¿¡¼­ ¿ø·¡ À§Ä¡·Î ÀÌµ¿
+	fclose(rfp);
+	fclose(wfp);
+	unlink(currentfile); //ÀÌµ¿½ÃÅ² ÆÄÀÏÀº »èÁ¦
+
+
+
+
+
+	}
+
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int FindByPerm(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=(char*)malloc (strlen(arg)+1);
+	strcpy(tmparg,arg);
+	FILE *fd;
+	int a,b;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // ¾ÆÀÌ³ëµå°¡ 0ÀÌ¸é ÆÐ½º
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . ³ª ..´Â ÆÐ½º
+			continue;
+		// lstatÀ¸·Î ÆÄÀÏÁ¤º¸ ÀúÀåÇÏ±â
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		a = StringtoInt(tmparg,8); // ÀÔ·Â¹ÞÀº ¸Å°³º¯¼ö¸¦ 8Áø¼ö Á¤¼öÇü?¸·?º¯°æ
+		b = (FileStat.st_mode&0777); // ÆÄÀÏÀÇ ±ÇÇÑ ÀúÀå
+		if(a!=b)
+			continue;
+		// ÆÐ½º¾ÈµÈ ÆÄÀÏ Ãâ·Â
+		printf("%s  %s %o\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
+	}
+	rewinddir(DP);
+
+	while((DirectStat=readdir(DP))!=NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name,".")||!strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if((FileStat.st_mode&S_IFMT)==S_IFDIR){
+			FindByPerm(DirectStat->d_name,tmparg1);
+		}
+		}
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int FindBySize(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=(char*)malloc (strlen(arg)+1);
+	strcpy(tmparg,arg);
+	FILE *fd;
+	int a,b;
+	char giho;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+	giho = tmparg[0]; // ¼ýÀÚ¾ÕÀÇ ºÎÈ£¸¦ ÀúÀå
+	Eliminate(tmparg,'+'); // ¼ýÀÚ¾Õ +±âÈ£ Á¦°Å
+	Eliminate(tmparg,'-'); // ¼ýÀÚ¾Õ -±âÈ£ Á¦°Å
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		a = StringtoInt(tmparg,10); // ¸Å°³º¯¼ö¸¦ 10Áø¼ö Á¤¼ö·Î º¯°æ
+		b = (FileStat.st_size); // ÆÄÀÏ »çÀÌÁî ÀúÀå
+		// ±âÈ£°¡ +ÀÎ°æ¿ì ÀÔ·Â°ªº¸´Ù ÀÛÀº ÆÄÀÏ ÆÐ½º
+		if((giho=='+')&(a>b)){
+			continue;
+		}
+		// ±âÈ£°¡ -ÀÎ°æ¿ì ÀÔ·Â°ªº¸´Ù Å« ÆÄÀÏ ÆÐ½º
+		if((giho=='-')&(a<b)){
+			continue;
+		}
+
+		printf("%s  %s %d\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name,b);
+	}
+	rewinddir(DP);
+
+	while((DirectStat=readdir(DP))!=NULL){
+		if(!(DirectStat->d_ino))
+			continue;
+		if(!strcmp(DirectStat->d_name,".")||!strcmp(DirectStat->d_name,".."))
+			continue;
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if((FileStat.st_mode&S_IFMT)==S_IFDIR){
+			FindBySize(DirectStat->d_name,tmparg1);
+		}
+		}
+
+
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int DeleteByName(char* path, char* arg){
+	DIR* DP;
+	struct stat FileStat;
+	char buf2[BUF_SIZE];
+	struct dirent *DirectStat;
+	char permbuf[5];
+	char permbuf1[5];
+	char *tmparg=arg;
+	FILE *fd;
+	int a,b;
+	if(access(path,R_OK)){
+		perror("access denied");
+		exit(1);
+	}
+
+	if(!(DP=opendir(path))){
+		perror("opendir error");
+		return -1;
+	}
+
+	chdir(path);
+
+	char * path_buf = (char*)malloc(BUF_SIZE);
+	while((DirectStat = readdir(DP)) != NULL){
+		if(!(DirectStat->d_ino)) // ¾ÆÀÌ³ëµå°¡ 0ÀÌ¸é ÆÐ½º
+			continue;
+		if(!strcmp(DirectStat->d_name, ".") || !strcmp(DirectStat->d_name,"..")) // . ³ª ..´Â ÆÐ½º
+			continue;
+		// lstatÀ¸·Î ÆÄÀÏÁ¤º¸ ÀúÀåÇÏ±â
+		if(lstat(DirectStat->d_name, &FileStat)<0){
+			perror("lstat error");
+			return -1;
+		}
+		if(fnmatch(tmparg,DirectStat->d_name,0))
+			continue;
+		// ÆÐ½º¾ÈµÈ ÆÄÀÏ Ãâ·Â
+		printf("%s  %s is deleted\n",getcwd(path_buf,BUF_SIZE),DirectStat->d_name);
+		unlink(DirectStat->d_name);
+	}
+	closedir(DP);
+	chdir("..");
+	free(path_buf);
+	return 0;
+}
+
+int StringtoInt(char* str, int radix){
+	char* tmp = str;
+	while(*tmp){
+		*tmp++;
+	}
+	return strtol(str,(char**)NULL,radix);
+}
+
+void Eliminate(char *str, char ch){
+	for (;*str!='\0';str++){
+		if(*str==ch)
+		{
+			strcpy(str,str+1);
+			str--;
+		}
+	}
 }
