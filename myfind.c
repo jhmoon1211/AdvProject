@@ -288,7 +288,7 @@ void group(char* path, char *arg) {
            continue;
         }
         else if((grp = getgrnam(arg)) ==  NULL) {              //Check if input data is name(char)
-           printf("ì°¾ëŠ” ê·¸ë£¹ëª…ê³¼ ì¼ì¹˜í•˜ëŠ” íŒŒì¼ì´ ì—†ìŠµë‹ˆë‹¤.\n");   //A case that file are not exist in the directory
+           printf("Ã£´Â ±×·ì¸í°ú ÀÏÄ¡ÇÏ´Â ÆÄÀÏÀÌ ¾ø½À´Ï´Ù.\n");   //A case that file are not exist in the directory
            break;
         }
         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {    //A case that input data is name and there exist some files
