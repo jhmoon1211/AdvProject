@@ -271,10 +271,11 @@ void group(char* path, char *arg) {
     DIR *dp;
     struct dirent *dent;
     struct stat sbuf;
-    char path2[BUFSIZ];
-    int i = 0;
     int gname;
     struct group *grp;
+    char path2[BUFSIZ], temp[255];
+    int i = 0;
+	int dir = 0;
 
     if((dp = opendir(path)) == NULL) { //Error for directory open
         perror("opendir");
@@ -282,6 +283,8 @@ void group(char* path, char *arg) {
     }
 
     while((dent = readdir(dp))) {  
+		if(dent->d_name[0] == '.') continue;
+		
         sprintf(path2, "%s/%s", path, dent->d_name);   //Read directory's list
         stat(path2, &sbuf);
 
@@ -302,7 +305,20 @@ void group(char* path, char *arg) {
         else if(((int)sbuf.st_gid) == ((int)grp->gr_gid)) {    //A case that input data is name and there exist some files
            printf("%d %s\n", (int)sbuf.st_gid, dent->d_name);
         }
+		
+		if((sbuf.st_mode & S_IFMT) == S_IFDIR) {
+			memset(temp, 0, 255);
+			strcat(temp, "./");
+			strcat(temp, dent->d_name);
+			dir = 1;
+		}
     }
+
+	if(dir == 1) {
+		i = 0;
+		dir = 0;
+		group(temp, arg);
+	}
 
     closedir(dp);  //Close directory
 }
@@ -311,7 +327,9 @@ void empty(char* path) {
     DIR *dp;
     struct dirent *dent;
     struct stat sbuf;
-    char path2[BUFSIZ];
+    char path2[BUFSIZ], temp[255];
+    int i = 0;
+	int dir = 0;
 
     if((dp = opendir(path)) == NULL) { //Open directory
          perror("opendir");
@@ -319,12 +337,32 @@ void empty(char* path) {
     }
 
     while((dent = readdir(dp))) {  
+		if(dent->d_name[0] == '.') continue;
+
         sprintf(path2, "%s/%s", path, dent->d_name);    //Read directory's list
         stat(path2, &sbuf);
 
         if((int)sbuf.st_size == 0) {    //Check whether file's size is 0
             printf("%s\n", dent->d_name);
+			i = 1;
         }
+
+		if((sbuf.st_mode & S_IFMT) == S_IFDIR) {
+			memset(temp, 0, 255);
+			strcat(temp, "./");
+			strcat(temp, dent->d_name);
+			dir = 1;
+		}
+    }
+
+	if(dir == 1) {
+		i = 0;
+		dir = 0;
+		empty(temp);
+	}
+	
+    if(i == 0) {
+	    printf("찾는 타입의 파일이 존재하지 않습니다.\n");
     }
 
     closedir(dp);   //Close directory
@@ -334,9 +372,10 @@ void type(char* path, char* arg) {
 	DIR *dp;
     struct dirent *dent;
     struct stat sbuf;
-    char path2[BUFSIZ];
-    int arg_type, type;
+    char path2[BUFSIZ], temp[255];
+    int arg_type, file_type;
     int i = 0;
+	int dir = 0;
 
     if((dp = opendir(path)) == NULL) {  //Directory open
         perror("opendir");
@@ -362,20 +401,35 @@ void type(char* path, char* arg) {
     }
 
     while(dent = readdir(dp)) {
+		if(dent->d_name[0] == '.') continue;
+
         sprintf(path2, "%s/%s", path, dent->d_name);
         stat(path2, &sbuf);
 
-        type = sbuf.st_mode & S_IFMT;
-        if(arg_type == type) {
+        file_type = sbuf.st_mode & S_IFMT;
+        if(arg_type == file_type) {
             printf("%s\n", dent->d_name);
             i = 1;
         }
+		if(file_type == S_IFDIR) {
+			memset(temp, 0, 255);
+			strcat(temp, "./");
+			strcat(temp, dent->d_name);
+			dir = 1;
+		}
     }
+
+	if(dir == 1) {
+		i = 0;
+		dir = 0;
+		type(temp, arg);
+	}
 
     if(i == 0) {
 	    printf("찾는 타입의 파일이 존재하지 않습니다.\n");
     }
 }
+
 int MvByName(char* path, char* arg, char* arg2){
 	DIR* DP;
 	struct stat FileStat;
