@@ -64,15 +64,12 @@ int main(int argc , char *argv[]) {
                 printf("delete \n");
                 break;
             case 'g':
-                printf("group \n");
                 group(argv[1], optarg);
                 break;
             case 't':
-                printf("type \n");
 				type(argv[1], optarg);
                 break;
             case 'm':
-                printf("mv \n");
                 break;
             case 'x':
                 printf("exec \n");
@@ -82,7 +79,6 @@ int main(int argc , char *argv[]) {
                 showHowToUseMYFIND();
                 break;
             case 'e':
-                printf("empty \n");
                 empty(argv[1]);
                 break;
         }
